@@ -8,18 +8,18 @@ class AnimalType(str, Enum):
     BUFFALO = "buffalo"
 
 class AnimalInfo(BaseModel):
-    tagNumber: str
-    animalType: AnimalType
-    breed: str
-    dateOfBirth: str
-    lactationNumber: int = Field(ge=1, le=10)
-    dateOfCalving: str
-    village: str
-    farmerName: str
+    tagNumber: Optional[str] = None
+    animalType: Optional[AnimalType] = AnimalType.CATTLE
+    breed: Optional[str] = "Unknown"
+    dateOfBirth: Optional[str] = ""
+    lactationNumber: Optional[int] = Field(default=1, ge=1, le=10)
+    dateOfCalving: Optional[str] = ""
+    village: Optional[str] = "Not specified"
+    farmerName: Optional[str] = "Unknown"
     farmerContact: Optional[str] = None
 
 class ClassificationCreate(BaseModel):
-    animalInfo: AnimalInfo
+    animalInfo: Optional[AnimalInfo] = None
 
 class ImageInfo(BaseModel):
     filename: str

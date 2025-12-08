@@ -19,6 +19,16 @@ async def create_classification(data: ClassificationCreate):
     
     db = await get_database()
     
+    # Handle missing or empty animalInfo
+    if data.animalInfo is None:
+        from app.models.schemas import AnimalInfo
+        data.animalInfo = AnimalInfo()
+    
+    # Auto-generate tag number if not provided
+    if not data.animalInfo.tagNumber:
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        data.animalInfo.tagNumber = f"AUTO-{timestamp}"
+    
     classification = {
         "animalInfo": data.animalInfo.dict(),
         "status": "created",

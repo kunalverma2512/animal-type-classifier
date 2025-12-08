@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiSearch, FiFilter, FiDownload, FiClock, FiMapPin, FiAward, FiChevronLeft, FiChevronRight, FiTrash2 } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiDownload, FiClock, FiAward, FiChevronLeft, FiChevronRight, FiTrash2 } from 'react-icons/fi';
 import { classificationService } from '../services/api';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -93,13 +93,9 @@ const ArchivePage = () => {
     try {
       // Prepare data for Excel
       const worksheetData = [
-        ['Tag Number', 'Animal Type', 'Breed', 'Village', 'Farmer Name', 'Overall Score', 'Grade', 'Confidence', 'Date'],
+        ['Classification ID', 'Overall Score', 'Grade', 'Confidence', 'Classification Date'],
         ...classifications.map(c => [
-          c.tagNumber,
-          c.animalType,
-          c.breed,
-          c.village,
-          c.farmerName,
+          c.id,
           c.overallScore,
           c.grade,
           c.confidenceLevel,
@@ -183,7 +179,7 @@ const ArchivePage = () => {
                 <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search by tag number, breed, village, or farmer name..."
+                  placeholder="Search by classification ID..."
                   value={filters.search}
                   onChange={handleSearchChange}
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
@@ -203,18 +199,8 @@ const ArchivePage = () => {
             <div className="flex flex-wrap gap-4 items-center">
               <div className="flex items-center gap-2">
                 <FiFilter className="text-gray-500 w-5 h-5" />
-                <span className="text-sm font-medium text-gray-600">Filters:</span>
+                <span className="text-sm font-medium text-gray-600">Filter:</span>
               </div>
-
-              <select
-                value={filters.animal_type}
-                onChange={(e) => handleFilterChange('animal_type', e.target.value)}
-                className="px-4 py-2 border border-gray-300 bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm"
-              >
-                <option value="">All Animal Types</option>
-                <option value="cattle">Cattle 🐄</option>
-                <option value="buffalo">Buffalo 🐃</option>
-              </select>
 
               <select
                 value={filters.grade}
@@ -228,7 +214,7 @@ const ArchivePage = () => {
                 <option value="Poor">Poor</option>
               </select>
 
-              {(filters.search || filters.animal_type || filters.grade) && (
+              {(filters.search || filters.grade) && (
                 <button
                   onClick={() => setFilters({ search: '', animal_type: '', grade: '', skip: 0, limit: 20 })}
                   className="px-4 py-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
@@ -280,51 +266,33 @@ const ArchivePage = () => {
                     className="bg-white border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden group"
                   >
                     {/* Card Header */}
-                    <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4 text-white">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-3xl mb-2">
-                            {classification.animalType === 'cattle' ? '🐄' : '🐃'}
-                          </div>
-                          <div className="text-sm font-medium tracking-wide">
-                            {classification.tagNumber}
-                          </div>
-                        </div>
+                    <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="text-4xl">📊</div>
                         <div className={`px-3 py-1 border ${getGradeBadge(classification.grade)} text-xs font-bold tracking-wide`}>
                           {classification.grade}
                         </div>
+                      </div>
+                      <div className="text-sm font-medium tracking-wide opacity-90">
+                        Classification ID
+                      </div>
+                      <div className="text-xs mt-1 font-mono opacity-75 break-all">
+                        {classification.id}
                       </div>
                     </div>
 
                     {/* Card Body */}
                     <div className="p-6 space-y-4">
-                      <div>
-                        <h3 className="text-xl font-medium text-gray-900 mb-1">
-                          {classification.breed}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <FiMapPin className="w-4 h-4" />
-                          {classification.village}
-                        </div>
-                      </div>
-
-                      <div className="border-t border-gray-200 pt-4 space-y-2">
+                      <div className="border-t border-gray-200 pt-4 space-y-4">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Overall Score</span>
-                          <span className="text-2xl font-light text-gray-900">
+                          <span className="text-sm text-gray-600 font-medium">Overall Score</span>
+                          <span className="text-3xl font-light text-gray-900">
                             {classification.overallScore}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                           <FiClock className="w-3 h-3" />
                           {formatDate(classification.createdAt)}
-                        </div>
-                      </div>
-
-                      <div className="pt-2">
-                        <div className="text-xs text-gray-500 mb-1">Farmer</div>
-                        <div className="text-sm font-medium text-gray-700">
-                          {classification.farmerName}
                         </div>
                       </div>
                     </div>

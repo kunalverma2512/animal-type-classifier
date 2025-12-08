@@ -9,30 +9,9 @@ const ClassifyPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Form State
-  const [formData, setFormData] = useState({
-    tagNumber: '',
-    animalType: 'cattle',
-    breed: '',
-    dateOfBirth: '',
-    lactationNumber: 1,
-    dateOfCalving: '',
-    village: '',
-    farmerName: '',
-    farmerContact: ''
-  });
-
   // Image State - store as array
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -58,10 +37,6 @@ const ClassifyPage = () => {
   };
 
   const validateForm = () => {
-    if (!formData.tagNumber || !formData.breed || !formData.village || !formData.farmerName) {
-      setError("Please fill in all required fields.");
-      return false;
-    }
     if (images.length !== 4) {
       setError("Please upload exactly 4 images.");
       return false;
@@ -69,6 +44,7 @@ const ClassifyPage = () => {
     setError(null);
     return true;
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -77,16 +53,8 @@ const ClassifyPage = () => {
     setError(null);
 
     try {
-      // Prepare data with correct types
-      const payload = {
-        ...formData,
-        lactationNumber: parseInt(formData.lactationNumber, 10)
-      };
-
-      // Step 1: Create Classification Record
-      const createResponse = await axios.post('http://127.0.0.1:8000/api/v1/classification/create', {
-        animalInfo: payload
-      });
+      // Step 1: Create Classification Record (with no animalInfo - backend will use defaults)
+      const createResponse = await axios.post('http://127.0.0.1:8000/api/v1/classification/create', {});
 
       if (!createResponse.data.success) throw new Error("Failed to create record");
       
@@ -206,7 +174,7 @@ const ClassifyPage = () => {
               transition={{ delay: 0.6, duration: 0.6 }}
               className="text-lg md:text-xl text-gray-300 leading-relaxed max-w-3xl mx-auto"
             >
-              Upload standardized images and animal details for comprehensive type score analysis following the official Annex II format with 20 traits across 5 sections.
+              Upload 4 standardized images for comprehensive type score analysis following the official Annex II format with 20 traits across 5 sections.
             </motion.p>
           </motion.div>
         </div>
@@ -222,166 +190,6 @@ const ClassifyPage = () => {
             onSubmit={handleSubmit}
             className="space-y-8"
           >
-            {/* Animal Information Card */}
-            <div className="bg-white shadow-2xl overflow-hidden border-l-8 border-orange-600">
-              <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-8 py-6 border-b-4 border-orange-800">
-                <h2 className="text-2xl font-bold text-white uppercase tracking-wide">Animal Information</h2>
-                <p className="text-sm text-gray-300 mt-1">Enter the basic details of the animal</p>
-              </div>
-              
-              <div className="p-8 bg-gray-50">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Tag Number */}
-                  <div className="group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-orange-600"></span>
-                      Tag Number *
-                    </label>
-                    <input
-                      type="text"
-                      name="tagNumber"
-                      value={formData.tagNumber}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                      placeholder="e.g. A123"
-                      required
-                    />
-                  </div>
-
-                  {/* Animal Type */}
-                  <div className="group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-orange-600"></span>
-                      Animal Type *
-                    </label>
-                    <select
-                      name="animalType"
-                      value={formData.animalType}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                    >
-                      <option value="cattle">Cattle</option>
-                      <option value="buffalo">Buffalo</option>
-                    </select>
-                  </div>
-
-                  {/* Breed */}
-                  <div className="group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-orange-600"></span>
-                      Breed *
-                    </label>
-                    <input
-                      type="text"
-                      name="breed"
-                      value={formData.breed}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                      placeholder="e.g. Holstein"
-                      required
-                    />
-                  </div>
-
-                  {/* Date of Birth */}
-                  <div className="group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-gray-400"></span>
-                      Date of Birth
-                    </label>
-                    <input
-                      type="date"
-                      name="dateOfBirth"
-                      value={formData.dateOfBirth}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                    />
-                  </div>
-
-                  {/* Lactation Number */}
-                  <div className="group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-gray-400"></span>
-                      Lactation Number
-                    </label>
-                    <input
-                      type="number"
-                      name="lactationNumber"
-                      min="1"
-                      max="10"
-                      value={formData.lactationNumber}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                    />
-                  </div>
-
-                  {/* Date of Calving */}
-                  <div className="group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-gray-400"></span>
-                      Date of Calving
-                    </label>
-                    <input
-                      type="date"
-                      name="dateOfCalving"
-                      value={formData.dateOfCalving}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                    />
-                  </div>
-
-                  {/* Village */}
-                  <div className="group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-orange-600"></span>
-                      Village *
-                    </label>
-                    <input
-                      type="text"
-                      name="village"
-                      value={formData.village}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                      placeholder="Village name"
-                      required
-                    />
-                  </div>
-
-                  {/* Farmer Name */}
-                  <div className="group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-orange-600"></span>
-                      Farmer Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="farmerName"
-                      value={formData.farmerName}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                      placeholder="Owner's name"
-                      required
-                    />
-                  </div>
-                  
-                  {/* Farmer Contact */}
-                  <div className="md:col-span-2 group">
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-gray-400"></span>
-                      Farmer Contact
-                    </label>
-                    <input
-                      type="text"
-                      name="farmerContact"
-                      value={formData.farmerContact}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3.5 bg-white border-2 border-gray-300 focus:border-orange-600 outline-none transition-all font-medium text-gray-900"
-                      placeholder="Phone number or email"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Image Upload Card */}
             <div className="bg-white shadow-2xl overflow-hidden border-l-8 border-green-600">
               <div className="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6 border-b-4 border-green-800">

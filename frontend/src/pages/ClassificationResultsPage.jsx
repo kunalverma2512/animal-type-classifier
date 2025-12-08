@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { FiCheckCircle, FiLoader, FiAlertCircle, FiArrowLeft, FiDownload, FiTrash2, FiTag, FiLayers, FiCalendar, FiActivity, FiMapPin, FiUser, FiPhone, FiFileText } from 'react-icons/fi';
+import { FiCheckCircle, FiLoader, FiAlertCircle, FiArrowLeft, FiDownload, FiTrash2 } from 'react-icons/fi';
 import { classificationService } from '../services/api';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import html2pdf from 'html2pdf.js';
 
 const ClassificationResultsPage = () => {
   const { id } = useParams();
@@ -13,10 +12,6 @@ const ClassificationResultsPage = () => {
   const [error, setError] = useState(null);
   const [results, setResults] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  
-  // Reference to the results section for PDF generation
-  const resultsRef = useRef(null);
 
   useEffect(() => {
     fetchResults();
@@ -51,94 +46,6 @@ const ClassificationResultsPage = () => {
     }
   };
 
-  // Download PDF Report using html2pdf.js
-  const handleDownloadPDF = async () => {
-    if (!results || !resultsRef.current) return;
-    
-    setPdfLoading(true);
-    try {
-      const element = resultsRef.current;
-      const tagNumber = results.animalInfo.tagNumber || 'Unknown';
-      const filename = `${tagNumber}-classification-report.pdf`;
-      
-      const options = {
-        margin: 1,
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
-          logging: false,
-          backgroundColor: '#ffffff',
-          onclone: (clonedDoc) => {
-            // Fix for Tailwind v4 oklch colors - convert to RGB
-            const style = clonedDoc.createElement('style');
-            style.textContent = `
-              * {
-                color: rgb(0, 0, 0) !important;
-              }
-              .text-white, [class*="text-white"] {
-                color: rgb(255, 255, 255) !important;
-              }
-              .text-gray-200 { color: rgb(229, 231, 235) !important; }
-              .text-gray-300 { color: rgb(209, 213, 219) !important; }
-              .text-gray-400 { color: rgb(156, 163, 175) !important; }
-              .text-gray-500 { color: rgb(107, 114, 128) !important; }
-              .text-gray-600 { color: rgb(75, 85, 99) !important; }
-              .text-gray-700 { color: rgb(55, 65, 81) !important; }
-              .text-gray-800 { color: rgb(31, 41, 55) !important; }
-              .text-gray-900 { color: rgb(17, 24, 39) !important; }
-              .text-green-400 { color: rgb(74, 222, 128) !important; }
-              .text-green-500 { color: rgb(34, 197, 94) !important; }
-              .text-green-600 { color: rgb(22, 163, 74) !important; }
-              .text-green-700 { color: rgb(21, 128, 61) !important; }
-              .text-blue-600 { color: rgb(37, 99, 235) !important; }
-              .text-blue-700 { color: rgb(29, 78, 216) !important; }
-              .text-blue-900 { color: rgb(30, 58, 138) !important; }
-              .text-orange-600 { color: rgb(234, 88, 12) !important; }
-              .text-red-500 { color: rgb(239, 68, 68) !important; }
-              .text-red-600 { color: rgb(220, 38, 38) !important; }
-              .text-red-700 { color: rgb(185, 28, 28) !important; }
-              .text-red-900 { color: rgb(127, 29, 29) !important; }
-              .text-purple-600 { color: rgb(147, 51, 234) !important; }
-              .text-pink-600 { color: rgb(219, 39, 119) !important; }
-              .text-teal-200 { color: rgb(153, 246, 228) !important; }
-              
-              .bg-white, [class*="bg-white"] { background-color: rgb(255, 255, 255) !important; }
-              .bg-gray-50 { background-color: rgb(249, 250, 251) !important; }
-              .bg-gray-100 { background-color: rgb(243, 244, 246) !important; }
-              .bg-gray-200 { background-color: rgb(229, 231, 235) !important; }
-              .bg-black { background-color: rgb(0, 0, 0) !important; }
-              .bg-green-50 { background-color: rgb(240, 253, 244) !important; }
-              .bg-green-100 { background-color: rgb(220, 252, 231) !important; }
-              .bg-blue-50 { background-color: rgb(239, 246, 255) !important; }
-              .bg-blue-100 { background-color: rgb(219, 234, 254) !important; }
-              .bg-orange-50 { background-color: rgb(255, 247, 237) !important; }
-              .bg-purple-50 { background-color: rgb(250, 245, 255) !important; }
-              .bg-pink-50 { background-color: rgb(253, 242, 248) !important; }
-              .bg-red-50 { background-color: rgb(254, 242, 242) !important; }
-              
-              .border-gray-100 { border-color: rgb(243, 244, 246) !important; }
-              .border-gray-200 { border-color: rgb(229, 231, 235) !important; }
-              .border-gray-300 { border-color: rgb(209, 213, 219) !important; }
-              .border-black { border-color: rgb(0, 0, 0) !important; }
-              .border-blue-500 { border-color: rgb(59, 130, 246) !important; }
-            `;
-            clonedDoc.head.appendChild(style);
-          }
-        },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-      
-      await html2pdf().from(element).set(options).save();
-    } catch (error) {
-      console.error('PDF generation failed:', error);
-      alert('Failed to generate PDF report. Please try again.');
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
   // Export results as Excel
   const exportResults = () => {
     if (!results) return;
@@ -147,6 +54,10 @@ const ClassificationResultsPage = () => {
       // Create detailed worksheet
       const worksheetData = [
         ['Classification Results'],
+        [''],
+        ['Classification Information'],
+        ['Classification ID', id],
+        ['Classification Date', new Date(results.createdAt).toLocaleDateString()],
         [''],
         ['Overall Information'],
         ['Overall Score', results.overallScore],
@@ -262,34 +173,17 @@ const ClassificationResultsPage = () => {
               <h1 className="text-4xl md:text-5xl font-light">Classification Results</h1>
             </div>
             <p className="text-xl text-gray-200">Official Type Evaluation Format (Annex II)</p>
-            <div className="mt-4 flex flex-wrap gap-4 justify-center">
-              <button
-                onClick={handleDownloadPDF}
-                disabled={pdfLoading}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white hover:bg-blue-600 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-              >
-                {pdfLoading ? (
-                  <>
-                    <FiLoader className="w-5 h-5 animate-spin" />
-                    Generating PDF, please wait...
-                  </>
-                ) : (
-                  <>
-                    <FiFileText className="w-5 h-5" />
-                    Download PDF Report
-                  </>
-                )}
-              </button>
+            <div className="mt-4 flex gap-4 justify-center">
               <button
                 onClick={exportResults}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white hover:bg-green-600 transition-all font-medium shadow-lg"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white hover:bg-green-600 transition-all font-medium"
               >
                 <FiDownload className="w-5 h-5" />
                 Export to Excel
               </button>
               <button
                 onClick={() => setDeleteConfirm(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-all font-medium shadow-lg"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-all font-medium"
               >
                 <FiTrash2 className="w-5 h-5" />
                 Delete Classification
@@ -299,106 +193,7 @@ const ClassificationResultsPage = () => {
         </div>
       </section>
 
-      {/* Results Section - Wrapped for PDF Generation */}
-      <div ref={resultsRef} className="max-w-5xl mx-auto px-6 py-12">
-        {/* Animal Details */}
-        {/* Animal Details */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mb-12">
-          <div className="bg-gray-50 px-8 py-6 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-xl font-light text-gray-900 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold">AI</span>
-              Animal Information
-            </h3>
-            <span className="px-4 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold tracking-wider uppercase">
-              Verified
-            </span>
-          </div>
-          
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {/* Identity Group */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                    <FiTag className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tag Number</p>
-                    <p className="text-lg font-medium text-gray-900">{results.animalInfo.tagNumber}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
-                    <FiLayers className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Type & Breed</p>
-                    <p className="text-lg font-medium text-gray-900 capitalize">
-                      {results.animalInfo.animalType} <span className="text-gray-400">/</span> {results.animalInfo.breed}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dates Group */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
-                    <FiCalendar className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Important Dates</p>
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-600">Born: <span className="font-medium text-gray-900">{results.animalInfo.dateOfBirth}</span></p>
-                      <p className="text-sm text-gray-600">Calved: <span className="font-medium text-gray-900">{results.animalInfo.dateOfCalving}</span></p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-pink-50 text-pink-600 rounded-xl">
-                    <FiActivity className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Lactation</p>
-                    <p className="text-lg font-medium text-gray-900">Number {results.animalInfo.lactationNumber}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Location Group */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-green-50 text-green-600 rounded-xl">
-                    <FiMapPin className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Location</p>
-                    <p className="text-lg font-medium text-gray-900">{results.animalInfo.village}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Owner Group */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-gray-100 text-gray-600 rounded-xl">
-                    <FiUser className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Farmer Details</p>
-                    <p className="text-lg font-medium text-gray-900">{results.animalInfo.farmerName}</p>
-                    {results.animalInfo.farmerContact && (
-                      <div className="flex items-center gap-2 mt-1 text-gray-500 text-sm">
-                        <FiPhone className="w-3 h-3" />
-                        {results.animalInfo.farmerContact}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Overall Score */}
         <div className="bg-black text-white p-12 mb-12">
           <div className="text-center space-y-4">
