@@ -44,10 +44,10 @@ async def upload_images(
     classification_id: str,
     images: List[UploadFile] = File(...),
 ):
-    """Step 2: Upload 3 images (exact angles as per format)"""
+    """Step 2: Upload 4 images (exact angles as per format)"""
     
-    if len(images) != 3:
-        raise HTTPException(400, "Exactly 3 images required")
+    if len(images) != 4:
+        raise HTTPException(400, "Exactly 4 images required")
     
     db = await get_database()
     
@@ -59,8 +59,8 @@ async def upload_images(
     if not classification:
         raise HTTPException(404, "Classification not found")
     
-    # Official angle names (3 images only)
-    angles = ["left_side", "right_side", "udder_closeup"]
+    # Official angle names (4 images only)
+    angles = ["top", "rear", "side", "bottom"]
     
     uploaded_files = []
     

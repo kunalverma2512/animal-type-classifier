@@ -37,8 +37,8 @@ const ClassifyPage = () => {
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
     
-    if (files.length !== 3) {
-      setError("Please select exactly 3 images (Left Side, Right Side, Rear/Udder)");
+    if (files.length !== 4) {
+      setError("Please select exactly 4 images (Top View, Rear View, Side View, Bottom View)");
       return;
     }
     
@@ -62,14 +62,13 @@ const ClassifyPage = () => {
       setError("Please fill in all required fields.");
       return false;
     }
-    if (images.length !== 3) {
-      setError("Please upload exactly 3 images.");
+    if (images.length !== 4) {
+      setError("Please upload exactly 4 images.");
       return false;
     }
     setError(null);
     return true;
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -387,7 +386,7 @@ const ClassifyPage = () => {
             <div className="bg-white shadow-2xl overflow-hidden border-l-8 border-green-600">
               <div className="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6 border-b-4 border-green-800">
                 <h2 className="text-2xl font-bold text-white uppercase tracking-wide">Upload Images</h2>
-                <p className="text-sm text-gray-300 mt-1">Select 3 images at once: Left Side, Right Side, and Rear/Udder View</p>
+                <p className="text-sm text-gray-300 mt-1">Select 4 images at once: Top View, Rear View, Side View, and Bottom View</p>
               </div>
 
               <div className="p-8 bg-gray-50">
@@ -408,11 +407,11 @@ const ClassifyPage = () => {
                         <h3 className="text-2xl font-bold text-gray-900 mb-3 uppercase tracking-wide">Drop Images Here</h3>
                         <p className="text-lg text-gray-600 mb-6">or click to browse</p>
                         <div className="flex items-center gap-3 text-sm font-bold text-gray-700 uppercase">
-                          <span className="px-4 py-2 bg-green-600 text-white border-2 border-green-600">Select 3 Images</span>
+                          <span className="px-4 py-2 bg-green-600 text-white border-2 border-green-600">Select 4 Images</span>
                           <span className="text-gray-500">JPG, PNG, JPEG</span>
                         </div>
                         <div className="mt-6 text-xs text-gray-500 uppercase tracking-wider">
-                          Required: Left Side • Right Side • Rear/Udder
+                          Required: Top View • Rear View • Side View • Bottom View
                         </div>
                       </div>
                     </div>
@@ -436,7 +435,7 @@ const ClassifyPage = () => {
                       </button>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       {previews.map((preview, index) => (
                         <div key={index} className="relative group">
                           <div className="aspect-square bg-gray-200 border-4 border-gray-300 overflow-hidden relative">

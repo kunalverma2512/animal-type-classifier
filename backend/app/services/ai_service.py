@@ -37,7 +37,7 @@ class AIService:
         Main classification following official Type Evaluation Format
         
         Args:
-            image_paths: 3 image paths (left_side, right_side, udder_closeup)
+            image_paths: 4 image paths (top, rear, side, bottom)
             animal_info: Animal details dict
         
         Returns:
