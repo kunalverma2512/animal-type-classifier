@@ -35,7 +35,6 @@ const ClassificationResultsPage = () => {
     }
   };
 
-  // Delete classification
   const handleDelete = async () => {
     try {
       await classificationService.deleteClassification(id);
@@ -46,12 +45,10 @@ const ClassificationResultsPage = () => {
     }
   };
 
-  // Export results as Excel
   const exportResults = () => {
     if (!results) return;
     
     try {
-      // Create detailed worksheet
       const worksheetData = [
         ['Classification Results'],
         [''],
@@ -109,13 +106,12 @@ const ClassificationResultsPage = () => {
     }
   };
 
-
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <FiLoader className="w-16 h-16 text-orange-500 animate-spin mx-auto mb-6" />
-          <p className="text-gray-600 text-lg">Loading classification results...</p>
+          <p className="text-gray-600 text-lg font-semibold uppercase tracking-wide">Loading Results...</p>
         </div>
       </div>
     );
@@ -127,18 +123,18 @@ const ClassificationResultsPage = () => {
         <div className="max-w-md w-full">
           <div className="bg-red-50 border-l-4 border-red-500 p-8 text-center">
             <FiAlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-medium text-red-900 mb-2">Error</h2>
-            <p className="text-red-700 mb-6">{error}</p>
+            <h2 className="text-2xl font-bold text-red-900 mb-2 uppercase tracking-wide">Error</h2>
+            <p className="text-red-700 mb-6 font-medium">{error}</p>
             <div className="flex gap-4 justify-center">
               <button
                 onClick={() => navigate('/archive')}
-                className="px-6 py-3 bg-red-600 text-white hover:bg-red-700 transition-colors"
+                className="px-6 py-3 bg-red-600 text-white hover:bg-red-700 transition-colors font-semibold uppercase text-sm"
               >
                 Back to Archive
               </button>
               <button
                 onClick={fetchResults}
-                className="px-6 py-3 border-2 border-red-600 text-red-600 hover:bg-red-50 transition-colors"
+                className="px-6 py-3 border-2 border-red-600 text-red-600 hover:bg-red-50 transition-colors font-semibold uppercase text-sm"
               >
                 Try Again
               </button>
@@ -151,127 +147,120 @@ const ClassificationResultsPage = () => {
 
   if (!results) return null;
 
+  const getGradeColor = (grade) => {
+    const colors = {
+      'Excellent': 'bg-green-500 border-green-700',
+      'Good': 'bg-blue-500 border-blue-700',
+      'Fair': 'bg-yellow-500 border-yellow-700',
+      'Poor': 'bg-red-500 border-red-700'
+    };
+    return colors[grade] || 'bg-gray-500 border-gray-700';
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <section className="bg-gradient-to-br from-teal-900 via-cyan-800 to-blue-900 text-white py-16 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-96 h-96 bg-green-500 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-80 h-80 bg-purple-500 rounded-full blur-3xl animate-pulse"></div>
-        </div>
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
+      <section className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-12 border-b-4 border-orange-500">
+        <div className="max-w-6xl mx-auto px-6">
           <Link
             to="/archive"
-            className="inline-flex items-center gap-2 text-teal-200 hover:text-white mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors font-semibold uppercase text-sm"
           >
             <FiArrowLeft className="w-5 h-5" />
             Back to Archive
           </Link>
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <FiCheckCircle className="w-8 h-8 text-green-400" />
-              <h1 className="text-4xl md:text-5xl font-light">Classification Results</h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="inline-flex items-center gap-3 mb-4">
+                <FiCheckCircle className="w-8 h-8 text-green-400" />
+                <h1 className="text-4xl font-bold tracking-tight">Classification Results</h1>
+              </div>
+              <p className="text-gray-300 font-medium uppercase text-sm tracking-wider">Official Type Evaluation Format (Annex II)</p>
             </div>
-            <p className="text-xl text-gray-200">Official Type Evaluation Format (Annex II)</p>
-            <div className="mt-4 flex gap-4 justify-center">
-              <button
-                onClick={exportResults}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white hover:bg-green-600 transition-all font-medium"
-              >
-                <FiDownload className="w-5 h-5" />
-                Export to Excel
-              </button>
-              <button
-                onClick={() => setDeleteConfirm(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-all font-medium"
-              >
-                <FiTrash2 className="w-5 h-5" />
-                Delete Classification
-              </button>
-            </div>
+          </div>
+          <div className="mt-6 flex gap-4">
+            <button
+              onClick={exportResults}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white hover:bg-orange-600 transition-all font-semibold uppercase text-sm tracking-wide border-b-2 border-orange-700"
+            >
+              <FiDownload className="w-5 h-5" />
+              Export Excel
+            </button>
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-all font-semibold uppercase text-sm tracking-wide border-b-2 border-red-700"
+            >
+              <FiTrash2 className="w-5 h-5" />
+              Delete
+            </button>
           </div>
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        {/* Overall Score */}
-        <div className="bg-black text-white p-12 mb-12">
-          <div className="text-center space-y-4">
-            <div className="text-sm font-medium tracking-widest uppercase text-gray-400">
-              Overall Type Score
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        {/* Classification Info */}
+        <div className="bg-white border-2 border-gray-200 p-8 mb-8">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Classification Details</h3>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Classification ID</p>
+              <p className="text-sm font-mono text-gray-800 break-all">{id}</p>
             </div>
-            <div className="text-7xl font-light">{results.overallScore}</div>
-            <div className="text-2xl tracking-wide">{results.grade}</div>
-            <div className="text-gray-400">Based on {results.totalTraits} official traits</div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Date</p>
+              <p className="text-sm font-semibold text-gray-800">{new Date(results.createdAt).toLocaleDateString()}</p>
+            </div>
           </div>
         </div>
 
-        {/* Milk Yield Prediction */}
-        {results.milkYieldPrediction && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 mb-12 border-l-2 border-blue-500">
-            <div className="mb-6">
-              <div className="text-sm font-medium tracking-widest uppercase mb-2 text-blue-700">
-                Predicted Milk Yield
-              </div>
-              <div className="flex items-baseline gap-4">
-                <div className="text-5xl font-light text-blue-900">
-                  {results.milkYieldPrediction.dailyYield}
-                </div>
-                <div className="text-xl text-blue-700">{results.milkYieldPrediction.unit}</div>
-              </div>
-              <div className="text-sm text-blue-600 mt-2">
-                Range: {results.milkYieldPrediction.minYield} - {results.milkYieldPrediction.maxYield} {results.milkYieldPrediction.unit}
-              </div>
+        {/* Overall Score */}
+        <div className="bg-slate-900 text-white p-12 mb-8 border-b-4 border-orange-500">
+          <div className="text-center space-y-4">
+            <div className="text-xs font-bold tracking-widest uppercase text-gray-400">
+              Overall Type Score
             </div>
-            
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <div className="text-sm font-medium uppercase mb-2 text-blue-700">Lactation Yield</div>
-                <div className="text-2xl font-light text-blue-900">
-                  {results.milkYieldPrediction.lactationYield.toLocaleString()}
-                </div>
-                <div className="text-sm text-blue-600">{results.milkYieldPrediction.lactationUnit}</div>
-              </div>
-              <div>
-                <div className="text-sm font-medium uppercase mb-2 text-blue-700">Confidence</div>
-                <div className="text-2xl font-light text-blue-900">
-                  {results.milkYieldPrediction.confidence}%
-                </div>
-                <div className="text-sm text-blue-600">Based on body & udder measurements</div>
-              </div>
+            <div className="text-8xl font-bold tracking-tight">{results.overallScore}</div>
+            <div className={`inline-block px-8 py-3 text-white text-xl font-bold uppercase tracking-wider border-b-4 ${getGradeColor(results.grade)}`}>
+              {results.grade}
             </div>
+            <div className="text-gray-400 font-medium">Based on {results.totalTraits} official traits</div>
           </div>
-        )}
+        </div>
 
         {/* Category Scores */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {Object.entries(results.categoryScores).map(([category, score]) => (
-            <div key={category} className="border-l-2 border-black pl-6 py-4">
-              <div className="text-sm font-medium tracking-widest uppercase mb-2 text-gray-500">
-                {category}
+        <div className="mb-8">
+          <h3 className="text-xl font-bold uppercase tracking-wide mb-6 border-l-4 border-orange-500 pl-4">Section Scores</h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(results.categoryScores).map(([category, score]) => (
+              <div key={category} className="bg-white border-2 border-gray-200 p-6 hover:border-orange-500 transition-colors">
+                <div className="text-xs font-bold tracking-widest uppercase mb-2 text-gray-500">
+                  {category}
+                </div>
+                <div className="text-5xl font-bold text-gray-900">{score}</div>
               </div>
-              <div className="text-4xl font-light">{score}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Detailed Traits */}
-        <div className="space-y-12">
-          <h3 className="text-3xl font-light border-l-2 border-black pl-6">Trait Details</h3>
+        <div className="space-y-8">
+          <h3 className="text-xl font-bold uppercase tracking-wide border-l-4 border-orange-500 pl-4">Trait Details</h3>
           {Object.entries(results.officialFormat.sections).map(([section, traits]) => (
-            <div key={section} className="border-l-2 border-gray-200 pl-6">
-              <h4 className="text-xl font-medium mb-6">{section}</h4>
-              <div className="grid md:grid-cols-2 gap-4">
+            <div key={section} className="bg-white border-2 border-gray-200 overflow-hidden">
+              <div className="bg-slate-900 text-white px-6 py-4 border-b-2 border-orange-500">
+                <h4 className="text-sm font-bold uppercase tracking-wider">{section}</h4>
+              </div>
+              <div className="divide-y-2 divide-gray-200">
                 {traits.map((trait, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-4 bg-gray-50">
-                    <span className="text-gray-700">{trait.trait}</span>
-                    <div className="flex items-center gap-4">
+                  <div key={idx} className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
+                    <span className="text-gray-700 font-medium">{trait.trait}</span>
+                    <div className="flex items-center gap-6">
                       {trait.measurement && (
-                        <span className="text-sm text-gray-500">
-                          {trait.measurement} {trait.measurement && 'cm'}
+                        <span className="text-sm text-gray-500 font-semibold">
+                          {trait.measurement} cm
                         </span>
                       )}
-                      <span className="font-medium text-lg">{trait.score}/9</span>
+                      <span className="font-bold text-xl text-gray-900 min-w-[60px] text-right">{trait.score}/9</span>
                     </div>
                   </div>
                 ))}
@@ -281,10 +270,10 @@ const ClassificationResultsPage = () => {
         </div>
 
         {/* Back Button */}
-        <div className="mt-16 text-center">
+        <div className="mt-12 text-center">
           <Link
             to="/archive"
-            className="inline-flex items-center gap-2 px-12 py-4 bg-orange-500 text-white font-medium tracking-wide hover:bg-orange-600 transition-colors"
+            className="inline-flex items-center gap-2 px-12 py-4 bg-orange-500 text-white font-bold tracking-wide hover:bg-orange-600 transition-colors uppercase text-sm border-b-4 border-orange-700"
           >
             <FiArrowLeft className="w-5 h-5" />
             Back to Archive
@@ -295,22 +284,22 @@ const ClassificationResultsPage = () => {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-          <div className="bg-white max-w-md w-full p-8 shadow-2xl">
-            <h3 className="text-2xl font-medium text-gray-900 mb-4">Delete Classification?</h3>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-white max-w-md w-full p-8 border-4 border-gray-200">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4 uppercase tracking-wide">Delete Classification?</h3>
+            <p className="text-gray-600 mb-6 font-medium">
               Are you sure you want to delete this classification? This action cannot be undone.
               You will be redirected to the archive page.
             </p>
             <div className="flex gap-4">
               <button
                 onClick={() => setDeleteConfirm(false)}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-bold hover:bg-gray-100 transition-colors uppercase text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 px-6 py-3 bg-red-500 text-white font-medium hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-red-500 text-white font-bold hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2 uppercase text-sm"
               >
                 <FiTrash2 className="w-4 h-4" />
                 Delete

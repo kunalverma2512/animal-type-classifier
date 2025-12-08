@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiSearch, FiFilter, FiDownload, FiClock, FiAward, FiChevronLeft, FiChevronRight, FiTrash2 } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiDownload, FiClock, FiAward, FiChevronLeft, FiChevronRight, FiTrash2, FiEye } from 'react-icons/fi';
 import { classificationService } from '../services/api';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -12,9 +12,8 @@ const ArchivePage = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // ID of item to delete
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  // Filter state
   const [filters, setFilters] = useState({
     search: '',
     animal_type: '',
@@ -23,7 +22,6 @@ const ArchivePage = () => {
     limit: 20
   });
 
-  // Fetch archive data
   useEffect(() => {
     fetchArchive();
   }, [filters]);
@@ -45,7 +43,6 @@ const ArchivePage = () => {
     }
   };
 
-  // Handle search input
   const handleSearchChange = (e) => {
     setFilters(prev => ({
       ...prev,
@@ -54,7 +51,6 @@ const ArchivePage = () => {
     }));
   };
 
-  // Handle filter changes
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
       ...prev,
@@ -63,7 +59,6 @@ const ArchivePage = () => {
     }));
   };
 
-  // Handle pagination
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setFilters(prev => ({
@@ -73,12 +68,10 @@ const ArchivePage = () => {
     }
   };
 
-  // Delete classification
   const handleDelete = async (id) => {
     try {
       await classificationService.deleteClassification(id);
       setDeleteConfirm(null);
-      // Refresh the list
       fetchArchive();
     } catch (err) {
       console.error('Delete failed:', err);
@@ -86,12 +79,10 @@ const ArchivePage = () => {
     }
   };
 
-  // Export to Excel
   const exportToExcel = () => {
     if (classifications.length === 0) return;
 
     try {
-      // Prepare data for Excel
       const worksheetData = [
         ['Classification ID', 'Overall Score', 'Grade', 'Confidence', 'Classification Date'],
         ...classifications.map(c => [
@@ -107,13 +98,8 @@ const ArchivePage = () => {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Classifications');
 
-      // Generate filename
       const filename = `classification_archive_${new Date().toISOString().split('T')[0]}.xlsx`;
-
-      // Generate Excel file as array buffer
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-      
-      // Create blob with proper MIME type
       const blob = new Blob([excelBuffer], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
@@ -125,18 +111,16 @@ const ArchivePage = () => {
     }
   };
 
-  // Get grade badge styling
-  const getGradeBadge = (grade) => {
-    const styles = {
-      'Excellent': 'bg-green-100 text-green-700 border-green-200',
-      'Good': 'bg-orange-100 text-orange-700 border-orange-200',
-      'Fair': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-      'Poor': 'bg-red-100 text-red-700 border-red-200'
+  const getGradeColor = (grade) => {
+    const colors = {
+      'Excellent': 'text-green-600 bg-green-50',
+      'Good': 'text-blue-600 bg-blue-50',
+      'Fair': 'text-yellow-700 bg-yellow-50',
+      'Poor': 'text-red-600 bg-red-50'
     };
-    return styles[grade] || 'bg-gray-100 text-gray-700 border-gray-200';
+    return colors[grade] || 'text-gray-600 bg-gray-50';
   };
 
-  // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -148,182 +132,160 @@ const ArchivePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-white py-24 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-orange-500 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500 rounded-full blur-3xl animate-pulse"></div>
-        </div>
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="text-center space-y-6">
-            <div className="text-sm font-medium tracking-widest uppercase text-gray-300">
-              Classification History
+      {/* Header */}
+      <section className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-12 border-b-4 border-orange-500">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-2">Classification Management</p>
+              <h1 className="text-4xl font-bold tracking-tight">Archive</h1>
             </div>
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-light">
-              Archive
-            </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Browse all past livestock classifications with detailed scores and assessments
-            </p>
+            <button
+              onClick={exportToExcel}
+              disabled={classifications.length === 0}
+              className="px-6 py-3 bg-orange-500 text-white font-semibold uppercase text-sm tracking-wide hover:bg-orange-600 transition-colors inline-flex items-center gap-2 disabled:bg-gray-600 disabled:cursor-not-allowed border-b-2 border-orange-700"
+            >
+              <FiDownload className="w-4 h-4" />
+              Export Excel
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Search and Filters Section */}
-      <section className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="space-y-6">
-            {/* Search Bar and Export Button */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="relative flex-grow max-w-2xl w-full">
-                <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search by classification ID..."
-                  value={filters.search}
-                  onChange={handleSearchChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
-                />
-              </div>
+      {/* Search and Filters */}
+      <section className="bg-white border-b-2 border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-grow">
+              <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search by classification ID..."
+                value={filters.search}
+                onChange={handleSearchChange}
+                className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 focus:border-orange-500 outline-none transition-all text-sm font-medium"
+              />
+            </div>
+            <select
+              value={filters.grade}
+              onChange={(e) => handleFilterChange('grade', e.target.value)}
+              className="px-4 py-3 border-2 border-gray-300 bg-white focus:border-orange-500 outline-none transition-all text-sm font-semibold min-w-[180px]"
+            >
+              <option value="">ALL GRADES</option>
+              <option value="Excellent">EXCELLENT</option>
+              <option value="Good">GOOD</option>
+              <option value="Fair">FAIR</option>
+              <option value="Poor">POOR</option>
+            </select>
+            {(filters.search || filters.grade) && (
               <button
-                onClick={exportToExcel}
-                disabled={classifications.length === 0}
-                className="px-6 py-3 bg-green-500 text-white font-medium tracking-wide hover:bg-green-600 transition-colors inline-flex items-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap"
+                onClick={() => setFilters({ search: '', animal_type: '', grade: '', skip: 0, limit: 20 })}
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold uppercase text-sm hover:bg-gray-50 transition-colors"
               >
-                <FiDownload className="w-5 h-5" />
-                Export to Excel
+                Clear
               </button>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <FiFilter className="text-gray-500 w-5 h-5" />
-                <span className="text-sm font-medium text-gray-600">Filter:</span>
-              </div>
-
-              <select
-                value={filters.grade}
-                onChange={(e) => handleFilterChange('grade', e.target.value)}
-                className="px-4 py-2 border border-gray-300 bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm"
-              >
-                <option value="">All Grades</option>
-                <option value="Excellent">Excellent</option>
-                <option value="Good">Good</option>
-                <option value="Fair">Fair</option>
-                <option value="Poor">Poor</option>
-              </select>
-
-              {(filters.search || filters.grade) && (
-                <button
-                  onClick={() => setFilters({ search: '', animal_type: '', grade: '', skip: 0, limit: 20 })}
-                  className="px-4 py-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
-                >
-                  Clear Filters
-                </button>
-              )}
-            </div>
-
-            {/* Results Count */}
-            <div className="text-sm text-gray-600">
-              Showing {classifications.length} of {totalResults} results
-            </div>
+            )}
+          </div>
+          <div className="mt-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+            {totalResults} Total Classifications
           </div>
         </div>
       </section>
 
-      {/* Results Section */}
-      <section className="py-12">
+      {/* Table Section */}
+      <section className="py-8">
         <div className="max-w-7xl mx-auto px-6">
           {loading ? (
             <div className="text-center py-24">
-              <div className="inline-block w-16 h-16 border-4 border-gray-300 border-t-orange-500 rounded-full animate-spin"></div>
-              <p className="mt-6 text-gray-600">Loading classifications...</p>
+              <div className="inline-block w-16 h-16 border-4 border-gray-300 border-t-orange-500 animate-spin"></div>
+              <p className="mt-6 text-gray-600 font-semibold uppercase text-sm">Loading...</p>
             </div>
           ) : error ? (
             <div className="bg-red-50 border-l-4 border-red-500 p-8 text-center">
-              <p className="text-red-700 font-medium">{error}</p>
+              <p className="text-red-700 font-semibold">{error}</p>
               <button
                 onClick={fetchArchive}
-                className="mt-4 px-6 py-2 bg-red-600 text-white hover:bg-red-700 transition-colors"
+                className="mt-4 px-6 py-3 bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors uppercase text-sm"
               >
-                Try Again
+                Retry
               </button>
             </div>
           ) : classifications.length === 0 ? (
-            <div className="text-center py-24">
-              <div className="text-6xl mb-6">📁</div>
-              <h3 className="text-2xl font-light text-gray-700 mb-2">No Classifications Found</h3>
-              <p className="text-gray-500">Try adjusting your search or filters</p>
+            <div className="text-center py-24 bg-white border-2 border-gray-200">
+              <div className="text-6xl mb-6">📊</div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2 uppercase tracking-wide">No Classifications Found</h3>
+              <p className="text-gray-500 font-medium">Try adjusting your search or filters</p>
             </div>
           ) : (
             <>
-              {/* Results Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                {classifications.map((classification) => (
-                  <div
-                    key={classification.id}
-                    className="bg-white border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden group"
-                  >
-                    {/* Card Header */}
-                    <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="text-4xl">📊</div>
-                        <div className={`px-3 py-1 border ${getGradeBadge(classification.grade)} text-xs font-bold tracking-wide`}>
-                          {classification.grade}
-                        </div>
-                      </div>
-                      <div className="text-sm font-medium tracking-wide opacity-90">
-                        Classification ID
-                      </div>
-                      <div className="text-xs mt-1 font-mono opacity-75 break-all">
-                        {classification.id}
-                      </div>
-                    </div>
-
-                    {/* Card Body */}
-                    <div className="p-6 space-y-4">
-                      <div className="border-t border-gray-200 pt-4 space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600 font-medium">Overall Score</span>
-                          <span className="text-3xl font-light text-gray-900">
-                            {classification.overallScore}
+              {/* Table */}
+              <div className="bg-white border-2 border-gray-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-slate-900 text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider border-r border-slate-700">Classification ID</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider border-r border-slate-700">Score</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider border-r border-slate-700">Grade</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider border-r border-slate-700">Date</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {classifications.map((classification, index) => (
+                      <tr 
+                        key={classification.id} 
+                        className={`border-b-2 border-gray-200 hover:bg-gray-50 transition-colors ${
+                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        }`}
+                      >
+                        <td className="px-6 py-4 border-r border-gray-200">
+                          <div className="font-mono text-xs text-gray-700 break-all">{classification.id}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center border-r border-gray-200">
+                          <div className="text-3xl font-bold text-gray-900">{classification.overallScore}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center border-r border-gray-200">
+                          <span className={`px-4 py-2 font-bold text-xs uppercase tracking-wider inline-block ${getGradeColor(classification.grade)}`}>
+                            {classification.grade}
                           </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <FiClock className="w-3 h-3" />
-                          {formatDate(classification.createdAt)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Footer */}
-                    <div className="px-6 pb-6 space-y-3">
-                      <Link
-                        to={`/classification/${classification.id}`}
-                        className="block w-full px-4 py-3 bg-orange-500 text-white text-center font-medium tracking-wide hover:bg-orange-600 transition-colors"
-                      >
-                        View Full Details
-                      </Link>
-                      <button
-                        onClick={() => setDeleteConfirm(classification.id)}
-                        className="block w-full px-4 py-3 border-2 border-red-500 text-red-500 text-center font-medium tracking-wide hover:bg-red-500 hover:text-white transition-colors inline-flex items-center justify-center gap-2"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                        </td>
+                        <td className="px-6 py-4 text-center border-r border-gray-200">
+                          <div className="flex items-center justify-center gap-2 text-sm text-gray-600 font-medium">
+                            <FiClock className="w-4 h-4" />
+                            {formatDate(classification.createdAt)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              to={`/classification/${classification.id}`}
+                              className="px-4 py-2 bg-orange-500 text-white font-semibold text-xs uppercase hover:bg-orange-600 transition-colors inline-flex items-center gap-2"
+                            >
+                              <FiEye className="w-4 h-4" />
+                              View
+                            </Link>
+                            <button
+                              onClick={() => setDeleteConfirm(classification.id)}
+                              className="px-4 py-2 bg-red-500 text-white font-semibold text-xs uppercase hover:bg-red-600 transition-colors inline-flex items-center gap-2"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-2 mt-8">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="p-2 border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-3 border-2 border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <FiChevronLeft className="w-5 h-5" />
                   </button>
@@ -344,10 +306,10 @@ const ArchivePage = () => {
                       <button
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
-                        className={`px-4 py-2 border font-medium transition-colors ${
+                        className={`px-5 py-3 border-2 font-bold text-sm transition-colors ${
                           currentPage === pageNum
                             ? 'bg-orange-500 text-white border-orange-500'
-                            : 'border-gray-300 hover:bg-gray-100'
+                            : 'border-gray-300 hover:bg-gray-100 text-gray-700'
                         }`}
                       >
                         {pageNum}
@@ -358,7 +320,7 @@ const ArchivePage = () => {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="p-2 border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-3 border-2 border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <FiChevronRight className="w-5 h-5" />
                   </button>
@@ -372,21 +334,21 @@ const ArchivePage = () => {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-          <div className="bg-white max-w-md w-full p-8 shadow-2xl">
-            <h3 className="text-2xl font-medium text-gray-900 mb-4">Delete Classification?</h3>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-white max-w-md w-full p-8 border-4 border-gray-200">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4 uppercase tracking-wide">Delete Classification?</h3>
+            <p className="text-gray-600 mb-6 font-medium">
               Are you sure you want to delete this classification? This action cannot be undone.
             </p>
             <div className="flex gap-4">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-bold uppercase text-sm hover:bg-gray-100 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 px-6 py-3 bg-red-500 text-white font-medium hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-red-500 text-white font-bold uppercase text-sm hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2"
               >
                 <FiTrash2 className="w-4 h-4" />
                 Delete
