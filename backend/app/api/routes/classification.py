@@ -69,8 +69,8 @@ async def upload_images(
     if not classification:
         raise HTTPException(404, "Classification not found")
     
-    # Generic labels for 5 images
-    angles = ["view_1", "view_2", "view_3", "view_4", "view_5"]
+    # Specific labels for each cattle view
+    angles = ["rear", "side", "top", "udder", "side_udder"]
     
     uploaded_files = []
     
