@@ -37,13 +37,14 @@ const Navbar = () => {
     {
       name: 'Learn',
       dropdown: [
-        { name: 'Breed Profiles', path: '/breeds' },
+        {name: 'Breed Profiles', path: '/breeds' },
         { name: 'Gallery', path: '/gallery' },
       ]
     },
     {
       name: 'Resources',
       dropdown: [
+        { name: 'Scoring Scale', path: '/scoring-scale' },
         { name: 'Documentation', path: '/docs' },
         { name: 'API Reference', path: '/api' },
         { name: 'FAQs', path: '/faq' },

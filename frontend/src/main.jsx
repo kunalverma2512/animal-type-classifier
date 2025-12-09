@@ -14,6 +14,7 @@ import DocsPage from './pages/DocsPage'
 import APIPage from './pages/APIPage'
 import ArchivePage from './pages/ArchivePage'
 import ClassificationResultsPage from './pages/ClassificationResultsPage'
+import ScoringScalePage from './pages/ScoringScalePage'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -28,6 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="classify" element={<ClassifyPage />} />
           <Route path="archive" element={<ArchivePage />} />
           <Route path="classification/:id" element={<ClassificationResultsPage />} />
+          <Route path="scoring-scale" element={<ScoringScalePage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="faq" element={<FAQPage />} />
           <Route path="gallery" element={<GalleryPage />} />

@@ -52,29 +52,24 @@ const APIPage = () => {
       method: 'POST',
       path: '/classification/create',
       title: 'Create Classification',
-      description: 'Initialize a new classification record with animal details.',
+      description: 'Initialize a new classification record. Animal info is optional - send empty object for auto-generated defaults.',
       color: 'emerald',
       icon: FiBox,
       params: [],
-      body: {
-        animalInfo: {
-          tagNumber: "ABC12345",
-          animalType: "cattle",
-          breed: "Gir",
-          dateOfBirth: "2020-05-15",
-          lactationNumber: 2,
-          dateOfCalving: "2023-01-10",
-          village: "Anand",
-          farmerName: "Rajesh Kumar",
-          farmerContact: "+919876543210"
-        }
-      },
+      body: {},
       response: {
         success: true,
         message: "Classification created",
         data: {
           id: "656a1b2c3d4e5f6g7h8i9j0k",
-          status: "created"
+          status: "created",
+          animalInfo: {
+            tagNumber: "AUTO-1733684425",
+            animalType: "cattle",
+            breed: "Unknown",
+            village: "Not specified",
+            farmerName: "Unknown"
+          }
         }
       }
     },
@@ -83,20 +78,21 @@ const APIPage = () => {
       method: 'POST',
       path: '/classification/{id}/upload-images',
       title: 'Upload Images',
-      description: 'Upload exactly 3 standardized images for the classification.',
+      description: 'Upload exactly 4 standardized images for the classification (Top, Rear, Side, Bottom views).',
       color: 'blue',
       icon: FiImage,
       params: [
         { name: 'id', type: 'string', required: true, desc: 'Classification ID' }
       ],
-      body: 'FormData: images (3 files)',
+      body: 'FormData: images (4 files)',
       response: {
         success: true,
         message: "Images uploaded successfully",
         data: [
-          { filename: "...", url: "/uploads/...", angle: "left_side", status: "uploaded" },
-          { filename: "...", url: "/uploads/...", angle: "right_side", status: "uploaded" },
-          { filename: "...", url: "/uploads/...", angle: "udder_closeup", status: "uploaded" }
+          { filename: "...", url: "/uploads/...", angle: "top_view", status: "uploaded" },
+          { filename: "...", url: "/uploads/...", angle: "rear_view", status: "uploaded" },
+          { filename: "...", url: "/uploads/...", angle: "side_view", status: "uploaded" },
+          { filename: "...", url: "/uploads/...", angle: "bottom_view", status: "uploaded" }
         ]
       }
     },
@@ -126,7 +122,7 @@ const APIPage = () => {
       method: 'GET',
       path: '/classification/{id}/results',
       title: 'Get Results',
-      description: 'Retrieve the final classification results in the official format.',
+      description: 'Retrieve classification results with trait scores, section scores, and overall grade.',
       color: 'amber',
       icon: FiDatabase,
       params: [
@@ -135,10 +131,28 @@ const APIPage = () => {
       response: {
         success: true,
         data: {
-          overallScore: 88,
-          grade: "Excellent",
-          categoryScores: { "Body Capacity": 90, "Dairy Character": 85 },
-          officialFormat: { sections: "{ ... }" }
+          id: "656a1b2c3d4e5f6g7h8i9j0k",
+          status: "completed",
+          overallScore: 6.7,
+          grade: "Good",
+          totalTraits: 20,
+          confidenceLevel: "High",
+          createdAt: "2025-12-08T15:30:00Z",
+          categoryScores: { 
+            "Body Capacity": 7.2, 
+            "Dairy Character": 6.5,
+            "Mammary System": 6.8,
+            "Feet and Legs": 6.4,
+            "Overall Appearance": 7.0
+          },
+          officialFormat: { 
+            sections: {
+              "Body Capacity": [
+                { trait: "Stature", score: 7, measurement: "142 cm" },
+                { trait: "Chest Width", score: 8, measurement: null }
+              ]
+            }
+          }
         }
       }
     },
@@ -153,14 +167,21 @@ const APIPage = () => {
       params: [
         { name: 'skip', type: 'integer', required: false, desc: 'Number of records to skip (default: 0)' },
         { name: 'limit', type: 'integer', required: false, desc: 'Number of records to return (default: 20)' },
-        { name: 'animal_type', type: 'string', required: false, desc: 'Filter by type (cattle/buffalo)' },
-        { name: 'grade', type: 'string', required: false, desc: 'Filter by grade (Excellent/Good/etc)' },
-        { name: 'search', type: 'string', required: false, desc: 'Search term for tag, breed, village' }
+        { name: 'grade', type: 'string', required: false, desc: 'Filter by grade (Excellent/Good/Fair/Poor)' },
+        { name: 'search', type: 'string', required: false, desc: 'Search by classification ID' }
       ],
       response: {
         success: true,
         data: {
-          results: "[ ... ]",
+          results: [
+            {
+              id: "656a1b2c3d4e5f6g7h8i9j0k",
+              overallScore: 6.7,
+              grade: "Good",
+              confidenceLevel: "High",
+              createdAt: "2025-12-08T15:30:00Z"
+            }
+          ],
           total: 150,
           page: 1,
           totalPages: 8
