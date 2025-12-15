@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiCheckCircle, FiAlertCircle, FiAward, FiActivity } from 'react-icons/fi';
 import axios from 'axios';
 
 const ClassificationResultsPage = () => {
@@ -33,6 +33,26 @@ const ClassificationResultsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getGradeColor = (grade) => {
+    const colors = {
+      'Excellent': 'text-green-600',
+      'Good': 'text-blue-600',
+      'Fair': 'text-orange-600',
+      'Poor': 'text-red-600'
+    };
+    return colors[grade] || 'text-gray-600';
+  };
+
+  const getGradeBgColor = (grade) => {
+    const colors = {
+      'Excellent': 'bg-green-50 border-green-500',
+      'Good': 'bg-blue-50 border-blue-500',
+      'Fair': 'bg-orange-50 border-orange-500',
+      'Poor': 'bg-red-50 border-red-500'
+    };
+    return colors[grade] || 'bg-gray-50 border-gray-500';
   };
 
   if (loading) {
@@ -80,8 +100,13 @@ const ClassificationResultsPage = () => {
 
   if (!results) return null;
 
+  const officialFormat = results.officialFormat || {};
+  const sections = officialFormat.sections || {};
+  const categoryScores = results.categoryScores || {};
+  const hasSideViewModel = results.sideViewModelMeta !== undefined;
+
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="min-h-screen bg-gray-50 pt-20 pb-12">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-12 border-b-4 border-orange-500">
         <div className="max-w-6xl mx-auto px-6">
@@ -95,15 +120,115 @@ const ClassificationResultsPage = () => {
         </div>
       </div>
 
-      {/* Results Content */}
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-12 space-y-8">
         
+        {/* Overall Score Card */}
+        {results.overallScore && (
+          <div className={`border-l-4 p-8 ${getGradeBgColor(results.grade)}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold uppercase text-gray-600 mb-2">Overall Type Score</p>
+                <div className="flex items-baseline gap-4">
+                  <p className="text-5xl font-bold text-gray-900">{results.overallScore}</p>
+                  <p className="text-2xl font-medium text-gray-500">/ 9.0</p>
+                </div>
+                <p className={`text-2xl font-bold uppercase mt-3 ${getGradeColor(results.grade)}`}>
+                  {results.grade}
+                </p>
+              </div>
+              <div className="text-right">
+                <FiAward className="w-20 h-20 text-orange-500 mb-2" />
+                <p className="text-sm font-bold uppercase text-gray-600">Total Traits</p>
+                <p className="text-3xl font-bold text-gray-900">{results.totalTraits || 20}</p>
+              </div>
+            </div>
+            {hasSideViewModel && (
+              <div className="mt-6 pt-6 border-t-2 border-gray-300">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <FiActivity className="w-5 h-5 text-orange-500" />
+                  <span>Side View analyzed with AI model (Real measurements included)</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Category Scores */}
+        {Object.keys(categoryScores).length > 0 && (
+          <div className="bg-white border-2 border-gray-200 overflow-hidden">
+            <div className="bg-slate-900 text-white px-8 py-6 border-b-4 border-orange-500">
+              <h2 className="text-2xl font-bold uppercase tracking-wide">Section Scores</h2>
+              <p className="text-sm text-gray-300 mt-2">Average scores across 5 official evaluation sections</p>
+            </div>
+            <div className="p-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(categoryScores).map(([category, score]) => (
+                  <div key={category} className="bg-gray-50 border-2 border-gray-300 p-6 hover:border-orange-500 transition-colors">
+                    <p className="text-xs font-bold uppercase text-gray-500 mb-3">{category}</p>
+                    <p className="text-4xl font-bold text-orange-600">{score}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Detailed Trait Breakdown */}
+        {Object.keys(sections).length > 0 && (
+          <div className="bg-white border-2 border-gray-200 overflow-hidden">
+            <div className="bg-slate-900 text-white px-8 py-6 border-b-4 border-orange-500">
+              <h2 className="text-2xl font-bold uppercase tracking-wide">Detailed Trait Analysis</h2>
+              <p className="text-sm text-gray-300 mt-2">Individual trait scores and measurements across all sections</p>
+            </div>
+            <div className="p-8 space-y-8">
+              {Object.entries(sections).map(([sectionName, traits]) => (
+                <div key={sectionName}>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-gray-200">
+                    <h3 className="text-xl font-bold uppercase text-gray-900">{sectionName}</h3>
+                    <span className="text-2xl font-bold text-orange-600">
+                      {categoryScores[sectionName] || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-100 border-b-2 border-gray-300">
+                          <th className="text-left px-4 py-3 text-xs font-bold uppercase text-gray-600">Trait</th>
+                          <th className="text-center px-4 py-3 text-xs font-bold uppercase text-gray-600">Score</th>
+                          <th className="text-center px-4 py-3 text-xs font-bold uppercase text-gray-600">Measurement</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {traits
+                          .filter(trait => trait.measurement !== null && trait.measurement !== undefined)
+                          .map((trait, idx) => (
+                          <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                            <td className="px-4 py-4 font-medium text-gray-900">{trait.trait}</td>
+                            <td className="px-4 py-4 text-center">
+                              <span className="inline-block px-4 py-2 bg-orange-100 text-orange-700 font-bold rounded">
+                                {trait.score || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-center text-gray-700 font-medium">
+                              {trait.measurement} cm
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Classification Info */}
-        <div className="bg-white border-2 border-gray-200 p-6 mb-8">
+        <div className="bg-white border-2 border-gray-200 p-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <p className="text-xs font-bold uppercase text-gray-500 mb-1">Classification ID</p>
-              <p className="text-lg font-mono">{id}</p>
+              <p className="text-lg font-mono text-gray-900">{id}</p>
             </div>
             <div>
               <p className="text-xs font-bold uppercase text-gray-500 mb-1">Status</p>
@@ -112,43 +237,8 @@ const ClassificationResultsPage = () => {
           </div>
         </div>
 
-        {/* View Classifications */}
-        {results.viewClassifications && (
-          <div className="bg-white border-2 border-gray-200 overflow-hidden mb-8">
-            <div className="bg-slate-900 text-white px-8 py-6 border-b-4 border-orange-500">
-              <h2 className="text-2xl font-bold uppercase tracking-wide">View Classifications</h2>
-              <p className="text-sm text-gray-300 mt-2">Model detected the following views for each uploaded image</p>
-            </div>
-            
-            <div className="p-8">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Object.entries(results.viewClassifications).map(([key, view]) => (
-                  <div key={key} className="bg-gray-50 border-2 border-gray-300 p-6 hover:border-orange-500 transition-colors">
-                    <div className="text-xs font-bold uppercase text-gray-500 mb-3">
-                      {key.replace('_', ' ').toUpperCase()}
-                    </div>
-                    <div className="text-3xl font-bold text-orange-600 uppercase">
-                      {view}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Raw Model Output (Debug) */}
-        {results.modelOutput && (
-          <div className="bg-gray-100 border-2 border-gray-300 p-6 mb-8">
-            <h3 className="text-sm font-bold uppercase text-gray-700 mb-4">Raw Model Output</h3>
-            <pre className="bg-white border border-gray-300 p-4 rounded overflow-x-auto text-sm">
-              {JSON.stringify(results.modelOutput, null, 2)}
-            </pre>
-          </div>
-        )}
-
         {/* Actions */}
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center pt-4">
           <button
             onClick={() => navigate('/classify')}
             className="px-8 py-4 bg-orange-500 text-white font-bold uppercase hover:bg-orange-600 transition-colors border-b-4 border-orange-700"
