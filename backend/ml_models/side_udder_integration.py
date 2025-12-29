@@ -15,9 +15,6 @@ from .model_downloader import get_model_path
 
 logger = logging.getLogger(__name__)
 
-_model = None
-_model_lock = threading.Lock()
-
 ML_MODELS_DIR = Path(__file__).parent
 
 SIDE_UDDER_KP_NAMES = [
