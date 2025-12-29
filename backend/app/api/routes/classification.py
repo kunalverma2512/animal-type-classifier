@@ -2,12 +2,20 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List, Optional
 from app.models.schemas import *
 from app.services.ai_service import ai_service
+from app.services.status_store import processing_status
 from app.core.config import settings
 from app.core.database import get_database
 import aiofiles
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from bson import ObjectId
+
+# IST timezone (UTC+5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
+
+def now_ist():
+    """Get current datetime in IST"""
+    return datetime.now(IST)
 
 router = APIRouter(prefix="/classification", tags=["Classification"])
 
@@ -26,7 +34,7 @@ async def create_classification(data: ClassificationCreate):
     
     # Auto-generate tag number if not provided
     if not data.animalInfo.tagNumber:
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        timestamp = now_ist().strftime("%Y%m%d%H%M%S")
         data.animalInfo.tagNumber = f"AUTO-{timestamp}"
     
     classification = {
@@ -34,8 +42,8 @@ async def create_classification(data: ClassificationCreate):
         "status": "created",
         "images": [],
         "results": None,
-        "createdAt": datetime.utcnow(),
-        "updatedAt": datetime.utcnow()
+        "createdAt": now_ist(),
+        "updatedAt": now_ist()
     }
     
     result = await db.classifications.insert_one(classification)
@@ -99,7 +107,7 @@ async def upload_images(
             "$set": {
                 "images": uploaded_files,
                 "status": "images_uploaded",
-                "updatedAt": datetime.utcnow()
+                "updatedAt": now_ist()
             }
         }
     )
@@ -129,7 +137,7 @@ async def process_classification(classification_id: str):
     
     await db.classifications.update_one(
         {"_id": ObjectId(classification_id)},
-        {"$set": {"status": "processing", "updatedAt": datetime.utcnow()}}
+        {"$set": {"status": "processing", "updatedAt": now_ist()}}
     )
     
     try:
@@ -138,10 +146,11 @@ async def process_classification(classification_id: str):
             for img in classification['images']
         ]
         
-        # AI Classification with official format
+        # AI Classification with official format + status tracking
         results = await ai_service.classify_animal(
             image_paths=image_paths,
-            animal_info=classification['animalInfo']
+            animal_info=classification['animalInfo'],
+            classification_id=classification_id  # Pass ID for status tracking
         )
         
         await db.classifications.update_one(
@@ -150,7 +159,7 @@ async def process_classification(classification_id: str):
                 "$set": {
                     "results": results,
                     "status": "completed",
-                    "updatedAt": datetime.utcnow()
+                    "updatedAt": now_ist()
                 }
             }
         )
@@ -168,8 +177,10 @@ async def process_classification(classification_id: str):
     except Exception as e:
         await db.classifications.update_one(
             {"_id": ObjectId(classification_id)},
-            {"$set": {"status": "failed", "error": str(e), "updatedAt": datetime.utcnow()}}
+            {"$set": {"status": "failed", "error": str(e), "updatedAt": now_ist()}}
         )
+        # Mark processing as failed in status store
+        processing_status.complete(classification_id, success=False, error=str(e))
         raise HTTPException(500, f"Processing failed: {str(e)}")
 
 @router.get("/{classification_id}/results")
@@ -208,8 +219,19 @@ async def get_results(classification_id: str):
 
 @router.get("/{classification_id}/status")
 async def get_status(classification_id: str):
-    """Get processing status"""
+    """Get real-time processing status with detailed progress"""
     
+    # First check if we have detailed processing status
+    detailed_status = processing_status.get(classification_id)
+    
+    if detailed_status:
+        # Return detailed real-time processing status
+        return {
+            "success": True,
+            "data": detailed_status
+        }
+    
+    # Fall back to database status if processing not active
     db = await get_database()
     
     try:
@@ -298,15 +320,19 @@ async def get_archive(
     # Format results for archive display
     results = []
     for c in classifications:
+        # Skip classifications without results
+        if not c.get("results"):
+            continue
+            
         results.append({
             "id": str(c["_id"]),
-            "tagNumber": c["animalInfo"]["tagNumber"],
-            "animalType": c["animalInfo"]["animalType"],
-            "breed": c["animalInfo"]["breed"],
-            "village": c["animalInfo"]["village"],
-            "farmerName": c["animalInfo"]["farmerName"],
-            "overallScore": c["results"]["overallScore"],
-            "grade": c["results"]["grade"],
+            "tagNumber": c.get("animalInfo", {}).get("tagNumber", "N/A"),
+            "animalType": c.get("animalInfo", {}).get("animalType", "N/A"),
+            "breed": c.get("animalInfo", {}).get("breed", "N/A"),
+            "village": c.get("animalInfo", {}).get("village", "N/A"),
+            "farmerName": c.get("animalInfo", {}).get("farmerName", "N/A"),
+            "overallScore": c["results"].get("overallScore", 0),
+            "grade": c["results"].get("grade", "Unknown"),
             "createdAt": c["createdAt"].isoformat(),
             "confidenceLevel": c["results"].get("confidenceLevel", "High")
         })

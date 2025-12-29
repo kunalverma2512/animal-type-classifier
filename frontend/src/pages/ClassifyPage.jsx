@@ -7,7 +7,8 @@ const ClassifyPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+  const [processingId, setProcessingId] = useState(null);  // Track classification ID during processing
+
   // State for 5 separate images
   const [images, setImages] = useState({
     rear: null,
@@ -36,14 +37,14 @@ const ClassifyPage = () => {
 
   const handleImageSelect = (viewKey, e) => {
     const file = e.target.files[0];
-    
+
     if (!file) return;
-    
+
     if (!file.type.startsWith('image/')) {
       setError(`Please select a valid image file for ${viewKey}`);
       return;
     }
-    
+
     setImages(prev => ({ ...prev, [viewKey]: file }));
     setPreviews(prev => ({ ...prev, [viewKey]: URL.createObjectURL(file) }));
     setError(null);
@@ -58,12 +59,12 @@ const ClassifyPage = () => {
     const missingViews = viewDefinitions
       .filter(view => !images[view.key])
       .map(view => view.label);
-    
+
     if (missingViews.length > 0) {
       setError(`Please upload images for: ${missingViews.join(', ')}`);
       return false;
     }
-    
+
     setError(null);
     return true;
   };
@@ -78,7 +79,7 @@ const ClassifyPage = () => {
     try {
       const createResponse = await axios.post('http://127.0.0.1:8000/api/v1/classification/create', {});
       if (!createResponse.data.success) throw new Error("Failed to create record");
-      
+
       const classificationId = createResponse.data.data.id;
 
       // Prepare images in the correct order
@@ -108,7 +109,7 @@ const ClassifyPage = () => {
     } catch (err) {
       console.error("Classification error:", err);
       let errorMessage = "An unexpected error occurred.";
-      
+
       if (err.response?.data?.detail) {
         const detail = err.response.data.detail;
         if (Array.isArray(detail)) {
@@ -121,7 +122,7 @@ const ClassifyPage = () => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -183,7 +184,7 @@ const ClassifyPage = () => {
       <section className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-8">
-            
+
             {/* Upload Instructions */}
             <div className="bg-white border-2 border-gray-200 p-6">
               <div className="flex items-start gap-4">
@@ -290,9 +291,8 @@ const ClassifyPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`px-16 py-5 bg-orange-500 text-white text-base font-bold tracking-widest uppercase border-b-4 border-orange-700 ${
-                  loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600'
-                } transition-colors`}
+                className={`px-16 py-5 bg-orange-500 text-white text-base font-bold tracking-widest uppercase border-b-4 border-orange-700 ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600'
+                  } transition-colors`}
               >
                 {loading ? (
                   <span className="flex items-center gap-3">

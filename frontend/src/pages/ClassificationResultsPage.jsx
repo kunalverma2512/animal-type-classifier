@@ -121,7 +121,7 @@ const ClassificationResultsPage = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-8">
-        
+
         {/* Overall Score Card */}
         {results.overallScore && (
           <div className={`border-l-4 p-8 ${getGradeBgColor(results.grade)}`}>
@@ -195,25 +195,25 @@ const ClassificationResultsPage = () => {
                         <tr className="bg-gray-100 border-b-2 border-gray-300">
                           <th className="text-left px-4 py-3 text-xs font-bold uppercase text-gray-600">Trait</th>
                           <th className="text-center px-4 py-3 text-xs font-bold uppercase text-gray-600">Score</th>
-                          <th className="text-center px-4 py-3 text-xs font-bold uppercase text-gray-600">Measurement</th>
+                          <th className="text-center px-4 py-3 text-xs font-bold uppercase text-gray-600">Measurement (pixels)</th>
                         </tr>
                       </thead>
                       <tbody>
                         {traits
                           .filter(trait => trait.measurement !== null && trait.measurement !== undefined)
                           .map((trait, idx) => (
-                          <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="px-4 py-4 font-medium text-gray-900">{trait.trait}</td>
-                            <td className="px-4 py-4 text-center">
-                              <span className="inline-block px-4 py-2 bg-orange-100 text-orange-700 font-bold rounded">
-                                {trait.score || 'N/A'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-center text-gray-700 font-medium">
-                              {trait.measurement} cm
-                            </td>
-                          </tr>
-                        ))}
+                            <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                              <td className="px-4 py-4 font-medium text-gray-900">{trait.trait}</td>
+                              <td className="px-4 py-4 text-center">
+                                <span className="inline-block px-4 py-2 bg-orange-100 text-orange-700 font-bold rounded">
+                                  {trait.score || 'N/A'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 text-center text-gray-700 font-medium">
+                                {trait.measurement} px
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>

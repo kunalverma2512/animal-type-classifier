@@ -1,0 +1,7 @@
+# Add build output
+dist/
+build/
+
+# Environment variables
+.env.local
+.env.production.local

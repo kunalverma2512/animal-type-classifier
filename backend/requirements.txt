@@ -12,6 +12,9 @@ pymongo
 # AI Integration (optional - works without)
 google-generativeai
 
+# ML Models for Cattle Analysis
+ultralytics
+
 # Image Processing (optional - using Pillow only for now)
 Pillow
 

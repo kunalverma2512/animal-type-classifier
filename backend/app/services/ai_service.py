@@ -4,6 +4,7 @@ Generates trait scores based on uploaded images
 Uses side view model for detailed side view analysis
 """
 from app.models.trait_definitions import TRAIT_DEFINITIONS, get_all_traits_flat
+from app.services.status_store import processing_status
 from typing import List, Dict
 import random
 from datetime import datetime
@@ -18,44 +19,106 @@ class AIService:
         self.traits = get_all_traits_flat()
         print("✓ AI Service initialized for trait evaluation")
     
-    async def classify_animal(self, image_paths: List[str], animal_info: Dict) -> Dict:
+    async def classify_animal(self, image_paths: List[str], animal_info: Dict, classification_id: str = None) -> Dict:
         """
-        Generate trait scores for cattle classification
+        Generate trait scores for cattle classification using ML models
         
         Args:
             image_paths: 5 image paths in order [rear, side, top, udder, side_udder]
             animal_info: Animal details dict
+            classification_id: Optional classification ID for status tracking
         
         Returns:
             Complete classification results with trait scores
         """
-        print(f"✓ Processing classification for {len(image_paths)} images")
+        # Initialize status tracking if classification_id provided
+        if classification_id:
+            processing_status.initialize(classification_id)
         
-        # Process rear view image for BCS if available
-        bcs_data = None
-        if len(image_paths) >= 1:  # rear view is first image
+        print(f"✓ Processing classification with {len(image_paths)} images")
+        print(f"  Using ML models for trait analysis")
+        
+        # Process all views with ML models
+        model_results = {}
+        
+        # 1. Rear view (index 0): BCS + Rump + Legs
+        if len(image_paths) >= 1:
             rear_view_path = image_paths[0]
-            print(f"Processing rear view image for BCS: {rear_view_path}")
-            bcs_data = self._process_bcs(rear_view_path)
+            if classification_id:
+                processing_status.update_step(classification_id, 0, "processing", "Analyzing rear view...")
+            
+            print(f"\n[1/5] Processing rear view: {rear_view_path}")
+            model_results['bcs'] = self._process_bcs(rear_view_path)
+            model_results['rear'] = self._process_rear_view(rear_view_path)
+            
+            if classification_id:
+                traits_count = len(model_results['rear'].get('traits', [])) if model_results['rear'] else 0
+                processing_status.update_step(classification_id, 0, "completed", f"✓ {traits_count + 1} traits detected")
         
-        # Process side view image with model if available
-        side_view_traits = None
-        if len(image_paths) >= 2:  # side view is second image
+        # 2. Side view (index 1): Body measurements + Feet/Legs + Rump angle
+        if len(image_paths) >= 2:
             side_view_path = image_paths[1]
-            print(f"Processing side view image with model: {side_view_path}")
-            side_view_traits = self._process_side_view(side_view_path)
+            if classification_id:
+                processing_status.update_step(classification_id, 1, "processing", "Analyzing side view...")
+            
+            print(f"\n[2/5] Processing side view: {side_view_path}")
+            model_results['side'] = self._process_side_view(side_view_path)
+            
+            if classification_id:
+                traits_count = len(model_results['side'].get('traits', [])) if model_results['side'] else 0
+                processing_status.update_step(classification_id, 1, "completed", f"✓ {traits_count} traits detected")
         
-        # Generate base results
+        # 3. Top view (index 2): Chest width
+        if len(image_paths) >= 3:
+            top_view_path = image_paths[2]
+            if classification_id:
+                processing_status.update_step(classification_id, 2, "processing", "Analyzing top view...")
+            
+            print(f"\n[3/5] Processing top view: {top_view_path}")
+            model_results['top'] = self._process_top_view(top_view_path)
+            
+            if classification_id:
+                traits_count = len(model_results['top'].get('traits', [])) if model_results['top'] else 0
+                processing_status.update_step(classification_id, 2, "completed", f"✓ {traits_count} traits detected")
+        
+        # 4. Udder view (index 3): Teat measurements + udder dimensions
+        if len(image_paths) >= 4:
+            udder_view_path = image_paths[3]
+            if classification_id:
+                processing_status.update_step(classification_id, 3, "processing", "Analyzing udder view...")
+            
+            print(f"\n[4/5] Processing udder view: {udder_view_path}")
+            model_results['udder'] = self._process_udder_view(udder_view_path)
+            
+            if classification_id:
+                traits_count = len(model_results['udder'].get('traits', [])) if model_results['udder'] else 0
+                processing_status.update_step(classification_id, 3, "completed", f"✓ {traits_count} traits detected")
+        
+        # 5. Side-udder view (index 4): Udder attachment + depth
+        if len(image_paths) >= 5:
+            side_udder_path = image_paths[4]
+            if classification_id:
+                processing_status.update_step(classification_id, 4, "processing", "Analyzing side-udder view...")
+            
+            print(f"\n[5/5] Processing side-udder view: {side_udder_path}")
+            model_results['side_udder'] = self._process_side_udder_view(side_udder_path)
+            
+            if classification_id:
+                traits_count = len(model_results['side_udder'].get('traits', [])) if model_results['side_udder'] else 0
+                processing_status.update_step(classification_id, 4, "completed", f"✓ {traits_count} traits detected")
+        
+        # Generate base results structure
         results = self._generate_mock_results(animal_info)
         
-        # Merge BCS data if available
-        if bcs_data:
-            results = self._merge_bcs_data(results, bcs_data)
+        # Merge all model results
+        print(f"\n✓ Merging model results into official format...")
+        results = self._merge_all_model_results(results, model_results)
         
-        # Merge side view model results if available
-        if side_view_traits:
-            results = self._merge_side_view_traits(results, side_view_traits)
+        # Mark as complete
+        if classification_id:
+            processing_status.complete(classification_id, success=True)
         
+        print(f"✓ Classification complete with overall score: {results['overallScore']}")
         return results
     
     def _process_side_view(self, image_path: str) -> Dict:
@@ -80,6 +143,9 @@ class AIService:
             # Extract formatted traits
             traits = extract_side_traits(raw_data)
             print(f"  ✓ Extracted {len(traits)} side view traits from model")
+            # Debug: show actual trait values
+            for trait in traits:
+                print(f"    - {trait['trait']}: score={trait['score']}, value={trait['measurement']} pixels")
             
             return {
                 'traits': traits,
@@ -108,17 +174,94 @@ class AIService:
             # Process BCS
             bcs_result = process_bcs(image_path)
             if not bcs_result:
-                print("  ⚠ BCS processing failed, using generated data")
+                print("  ⚠ BCS processing failed, using placeholder")
                 return None
             
-            print(f"  ✓ BCS Score: {bcs_result['score']} ({bcs_result['condition']})")
-            
+            print(f"  ✓ BCS: {bcs_result['score']} ({bcs_result['condition']})")
             return bcs_result
             
         except Exception as e:
-            print(f"  ⚠ BCS processing error: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"  ⚠ BCS error: {e}")
+            return None
+    
+    def _process_rear_view(self, image_path: str) -> Dict:
+        """
+        Process rear view for rump and leg analysis
+        """
+        try:
+            from ml_models.rear_view_integration import process_rear_view, extract_rear_traits
+            
+            raw_data = process_rear_view(image_path)
+            if not raw_data:
+                print("  ⚠ Rear view model failed")
+                return None
+            
+            traits = extract_rear_traits(raw_data)
+            print(f"  ✓ Rear view: {len(traits)} traits")
+            return {'traits': traits, 'meta': raw_data.get('meta', {})}
+            
+        except Exception as e:
+            print(f"  ⚠ Rear view error: {e}")
+            return None
+    
+    def _process_top_view(self, image_path: str) -> Dict:
+        """
+        Process top view for chest width
+        """
+        try:
+            from ml_models.top_view_integration import process_top_view, extract_top_traits
+            
+            raw_data = process_top_view(image_path)
+            if not raw_data:
+                print("  ⚠ Top view model failed")
+                return None
+            
+            traits = extract_top_traits(raw_data)
+            print(f"  ✓ Top view: {len(traits)} traits")
+            return {'traits': traits, 'meta': raw_data.get('meta', {})}
+            
+        except Exception as e:
+            print(f"  ⚠ Top view error: {e}")
+            return None
+    
+    def _process_udder_view(self, image_path: str) -> Dict:
+        """
+        Process udder view for teat and udder measurements
+        """
+        try:
+            from ml_models.udder_view_integration import process_udder_view, extract_udder_traits
+            
+            raw_data = process_udder_view(image_path)
+            if not raw_data:
+                print("  ⚠ Udder view model failed")
+                return None
+            
+            traits = extract_udder_traits(raw_data)
+            print(f"  ✓ Udder view: {len(traits)} traits")
+            return {'traits': traits, 'meta': raw_data.get('meta', {})}
+            
+        except Exception as e:
+            print(f"  ⚠ Udder view error: {e}")
+            return None
+    
+    def _process_side_udder_view(self, image_path: str) -> Dict:
+        """
+        Process side-udder view for udder attachment and depth
+        """
+        try:
+            from ml_models.side_udder_integration import process_side_udder_view, extract_side_udder_traits
+            
+            raw_data = process_side_udder_view(image_path)
+            if not raw_data:
+                print("  ⚠ Side-udder view model failed")
+                return None
+            
+            traits = extract_side_udder_traits(raw_data)
+            print(f"  ✓ Side-udder view: {len(traits)} traits")
+            return {'traits': traits, 'meta': raw_data.get('meta', {})}
+            
+        except Exception as e:
+            print(f"  ⚠ Side-udder view error: {e}")
             return None
     
     def _merge_bcs_data(self, base_results: Dict, bcs_data: Dict) -> Dict:
@@ -259,6 +402,145 @@ class AIService:
         # Add metadata about model usage
         if 'meta' in side_view_data:
             base_results['sideViewModelMeta'] = side_view_data['meta']
+        
+        return base_results
+    
+    def _merge_all_model_results(self, base_results: Dict, model_results: Dict) -> Dict:
+        """
+        Merge all model results into the official 20-trait format
+        
+        Args:
+            base_results: Base results structure from mock data
+            model_results: Dictionary with all model outputs
+                {'bcs': ..., 'rear':..., 'side': ..., 'top': ..., 'udder': ..., 'side_udder': ...}
+        
+        Returns:
+            Merged results with all available model data
+        """
+        official_format = base_results.get('officialFormat', {})
+        sections = official_format.get('sections', {})
+        
+        # Create a mapping from trait names to model data
+        trait_updates = {}
+        
+        # Process BCS
+        if model_results.get('bcs'):
+            trait_updates['Body condition score'] = {
+                'score': model_results['bcs']['score'],
+                'measurement': model_results['bcs']['score']
+            }
+        
+        # Process side view traits
+        if model_results.get('side') and model_results['side'].get('traits'):
+            for t in model_results['side']['traits']:
+                trait_name = t['trait']
+                trait_updates[trait_name] = {
+                    'score': t.get('score'),
+                    'measurement': t.get('measurement')
+                }
+        
+        # Process rear view traits
+        if model_results.get('rear') and model_results['rear'].get('traits'):
+            for t in model_results['rear']['traits']:
+                trait_name = t['trait']
+                trait_updates[trait_name] = {
+                    'score': t.get('score'),
+                    'measurement': t.get('measurement')
+                }
+        
+        # Process top view traits
+        if model_results.get('top') and model_results['top'].get('traits'):
+            for t in model_results['top']['traits']:
+                trait_name = t['trait']
+                trait_updates[trait_name] = {
+                    'score': t.get('score'),
+                    'measurement': t.get('measurement')
+                }
+        
+        # Process udder view traits
+        if model_results.get('udder') and model_results['udder'].get('traits'):
+            for t in model_results['udder']['traits']:
+                trait_name = t['trait']
+                trait_updates[trait_name] = {
+                    'score': t.get('score'),
+                    'measurement': t.get('measurement')
+                }
+        
+        # Process side-udder view traits
+        if model_results.get('side_udder') and model_results['side_udder'].get('traits'):
+            for t in model_results['side_udder']['traits']:
+                trait_name = t['trait']
+                trait_updates[trait_name] = {
+                    'score': t.get('score'),
+                    'measurement': t.get('measurement')
+                }
+        
+        # Apply updates to official format
+        traits_updated = 0
+        for section_name, section_traits in sections.items():
+            for i, trait in enumerate(section_traits):
+                trait_name = trait['trait']
+                
+                # Check for exact match or partial match
+                update_data = trait_updates.get(trait_name)
+                
+                # If no exact match, try to find similar trait names
+                if not update_data:
+                    for key, value in trait_updates.items():
+                        if key.lower() in trait_name.lower() or trait_name.lower() in key.lower():
+                            update_data = value
+                            break
+                
+                if update_data:
+                    if update_data.get('score') is not None:
+                        sections[section_name][i]['score'] = update_data['score']
+                        traits_updated += 1
+                    if update_data.get('measurement') is not None:
+                        sections[section_name][i]['measurement'] = update_data['measurement']
+        
+        print(f"  ✓ Updated {traits_updated} traits from ML models")
+        print(f"  ⚠ IMPORTANT: All measurements are in PIXELS, not centimeters!")
+        print(f"  ⚠ Scale conversion requires sticker detection (not yet implemented)")
+        
+        # Recalculate overall scores
+        all_scores = []
+        for section_traits in sections.values():
+            all_scores.extend([t['score'] for t in section_traits if t['score'] is not None])
+        
+        if all_scores:
+            overall = round(sum(all_scores) / len(all_scores), 1)
+            base_results['overallScore'] = overall
+            
+            # Update grade
+            if overall >= 7.5:
+                base_results['grade'] = "Excellent"
+            elif overall >= 6.0:
+                base_results['grade'] = "Good"
+            elif overall >= 4.0:
+                base_results['grade'] = "Fair"
+            else:
+                base_results['grade'] = "Poor"
+            
+            # Update category scores
+            base_results['categoryScores'] = {
+                cat: round(sum(t['score'] for t in traits if t['score'] is not None) / 
+                          len([t for t in traits if t['score'] is not None]), 1)
+                if [t for t in traits if t['score'] is not None] else 0
+                for cat, traits in sections.items()
+            }
+        
+        # Add model metadata
+        base_results['mlModelsMeta'] = {
+            'models_used': [k for k, v in model_results.items() if v is not None],
+            'total_traits_from_models': traits_updated,
+            'model_versions': {
+                'side': 'side_view_model_v2.pt',
+                'rear': 'rear_view_model.pt',
+                'top': 'top_view_model.pt',
+                'udder': 'udder_view_model.pt',
+                'side_udder': 'cattle_side_udder.pt'
+            }
+        }
         
         return base_results
 
