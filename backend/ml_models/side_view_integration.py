@@ -80,7 +80,8 @@ def angle_with_horizontal(a: Tuple[float, float], b: Tuple[float, float]) -> Opt
 
 def process_side_view(image_path: str) -> Optional[Dict]:
     """
-    Process a side view image using the side view model
+    Process a side view image using the side view model.
+    Loads model, runs inference, then explicitly unloads to free RAM.
     
     Args:
         image_path: Path to the side view image
@@ -89,28 +90,42 @@ def process_side_view(image_path: str) -> Optional[Dict]:
         Dictionary with traits, scores, and measurements
         Returns None if processing fails
     """
+    logger.info(f"Processing side view: {image_path}")
+    
     if not os.path.exists(image_path):
-        print(f"Side view image not found: {image_path}")
+        logger.error(f"Side view image not found: {image_path}")
         return None
     
     # Get model path (downloads if needed)
-    side_view_model = get_model_path("side_view_model_v2.pt")
-    if side_view_model is None:
-        print("Failed to load side view model")
+    model_path = get_model_path("side_view_model_v2.pt")
+    if model_path is None:
+        logger.error("Failed to get side view model path")
         return None
     
+    model = None
     try:
+        # LOAD: Load model into RAM
+        logger.info("Loading side_view_model_v2.pt into RAM...")
         from ultralytics import YOLO
+        import time
+        
+        load_start = time.time()
+        model = YOLO(str(model_path))
+        load_time = time.time() - load_start
+        logger.info(f"Side view model loaded in {load_time:.2f}s")
         
         # Load image
         img = cv2.imread(image_path)
         if img is None:
-            print(f"Failed to load image: {image_path}")
+            logger.error(f"Failed to load image: {image_path}")
             return None
         
-        # Load model and run inference
-        model = YOLO(str(side_view_model))
+        # INFER: Run inference
+        logger.info("Running side view inference...")
+        infer_start = time.time()
         results = model.predict(img, imgsz=640, verbose=False)
+        infer_time = time.time() - infer_start
+        logger.info(f"Side view inference completed in {infer_time:.2f}s")
         
         if not results or len(results) == 0:
             print("No results from side view model")
@@ -245,10 +260,16 @@ def process_side_view(image_path: str) -> Optional[Dict]:
         }
         
     except Exception as e:
-        print(f"Side view processing error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Error processing side view: {str(e)}")
         return None
+        
+    finally:
+        # UNLOAD: Explicitly free model from RAM
+        if model is not None:
+            logger.info("Unloading side_view_model from RAM...")
+            del model
+            gc.collect()  # Force garbage collection
+            logger.info("Side view model unloaded, memory freed")
 
 
 def _score_body_length(length_px: Optional[float]) -> Optional[int]:

@@ -53,7 +53,8 @@ def angle_at_point(a: Tuple[float, float], b: Tuple[float, float], c: Tuple[floa
 
 def process_side_udder_view(image_path: str) -> Optional[Dict]:
     """
-    Process a side-udder view image using the cattle_side_udder model
+    Process a side-udder view image using the cattle_side_udder model.
+    Loads model, runs inference, then explicitly unloads to free RAM.
     
     Args:
         image_path: Path to the side-udder view image
@@ -62,28 +63,42 @@ def process_side_udder_view(image_path: str) -> Optional[Dict]:
         Dictionary with traits, scores, and measurements
         Returns None if processing fails
     """
+    logger.info(f"Processing side-udder view: {image_path}")
+    
     if not os.path.exists(image_path):
-        print(f"Side-udder view image not found: {image_path}")
+        logger.error(f"Side-udder view image not found: {image_path}")
         return None
     
     # Get model path (downloads if needed)
-    side_udder_model = get_model_path("cattle_side_udder.pt")
-    if side_udder_model is None:
-        print("Failed to load side-udder view model")
+    model_path = get_model_path("cattle_side_udder.pt")
+    if model_path is None:
+        logger.error("Failed to get side-udder view model path")
         return None
     
+    model = None
     try:
+        # LOAD: Load model into RAM
+        logger.info("Loading cattle_side_udder.pt into RAM...")
         from ultralytics import YOLO
+        import time
+        
+        load_start = time.time()
+        model = YOLO(str(model_path))
+        load_time = time.time() - load_start
+        logger.info(f"Side-udder model loaded in {load_time:.2f}s")
         
         # Load image
         img = cv2.imread(image_path)
         if img is None:
-            print(f"Failed to load image: {image_path}")
+            logger.error(f"Failed to load image: {image_path}")
             return None
         
-        # Load model and run inference
-        model = YOLO(str(side_udder_model))
+        # INFER: Run inference
+        logger.info("Running side-udder inference...")
+        infer_start = time.time()
         results = model.predict(img, imgsz=640, verbose=False)
+        infer_time = time.time() - infer_start
+        logger.info(f"Side-udder inference completed in {infer_time:.2f}s")
         
         if not results or len(results) == 0:
             print("No results from side-udder view model")
@@ -162,10 +177,16 @@ def process_side_udder_view(image_path: str) -> Optional[Dict]:
         }
         
     except Exception as e:
-        print(f"Side-udder view processing error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Error processing side-udder view: {str(e)}")
         return None
+        
+    finally:
+        # UNLOAD: Explicitly free model from RAM
+        if model is not None:
+            logger.info("Unloading side_udder model from RAM...")
+            del model
+            gc.collect()
+            logger.info("Side-udder model unloaded, memory freed")
 
 
 def _score_fore_udder_attachment(angle_deg: Optional[float]) -> Optional[int]:

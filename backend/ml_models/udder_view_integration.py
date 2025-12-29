@@ -39,7 +39,8 @@ def dist_pixels(a: Tuple[float, float], b: Tuple[float, float]) -> float:
 
 def process_udder_view(image_path: str) -> Optional[Dict]:
     """
-    Process an udder view image using the udder view model
+    Process an udder view image using the udder view model.
+    Loads model, runs inference, then explicitly unloads to free RAM.
     
     Args:
         image_path: Path to the udder view image
@@ -48,28 +49,42 @@ def process_udder_view(image_path: str) -> Optional[Dict]:
         Dictionary with traits, scores, and measurements
         Returns None if processing fails
     """
+    logger.info(f"Processing udder view: {image_path}")
+    
     if not os.path.exists(image_path):
-        print(f"Udder view image not found: {image_path}")
+        logger.error(f"Udder view image not found: {image_path}")
         return None
     
     # Get model path (downloads if needed)
-    udder_view_model = get_model_path("udder_view_model.pt")
-    if udder_view_model is None:
-        print("Failed to load udder view model")
+    model_path = get_model_path("udder_view_model.pt")
+    if model_path is None:
+        logger.error("Failed to get udder view model path")
         return None
     
+    model = None
     try:
+        # LOAD: Load model into RAM
+        logger.info("Loading udder_view_model.pt into RAM...")
         from ultralytics import YOLO
+        import time
+        
+        load_start = time.time()
+        model = YOLO(str(model_path))
+        load_time = time.time() - load_start
+        logger.info(f"Udder view model loaded in {load_time:.2f}s")
         
         # Load image
         img = cv2.imread(image_path)
         if img is None:
-            print(f"Failed to load image: {image_path}")
+            logger.error(f"Failed to load image: {image_path}")
             return None
         
-        # Load model and run inference
-        model = YOLO(str(udder_view_model))
+        # INFER: Run inference
+        logger.info("Running udder view inference...")
+        infer_start = time.time()
         results = model.predict(img, imgsz=640, verbose=False)
+        infer_time = time.time() - infer_start
+        logger.info(f"Udder view inference completed in {infer_time:.2f}s")
         
         if not results or len(results) == 0:
             print("No results from udder view model")
@@ -180,10 +195,16 @@ def process_udder_view(image_path: str) -> Optional[Dict]:
         }
         
     except Exception as e:
-        print(f"Udder view processing error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Error processing udder view: {str(e)}")
         return None
+        
+    finally:
+        # UNLOAD: Explicitly free model from RAM
+        if model is not None:
+            logger.info("Unloading udder_view_model from RAM...")
+            del model
+            gc.collect()
+            logger.info("Udder view model unloaded, memory freed")
 
 
 def _score_teat_placement(distance_px: Optional[float]) -> Optional[int]:

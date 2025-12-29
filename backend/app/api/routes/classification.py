@@ -7,8 +7,16 @@ from app.core.config import settings
 from app.core.database import get_database
 import aiofiles
 import os
+import threading
+import gc
+import logging
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
+
+logger = logging.getLogger(__name__)
+
+# Global lock for request serialization (512MB RAM - one classification at a time)
+_processing_lock = threading.Lock()
 
 # IST timezone (UTC+5:30)
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -135,53 +143,62 @@ async def process_classification(classification_id: str):
     if not classification.get('images'):
         raise HTTPException(400, "No images uploaded")
     
-    await db.classifications.update_one(
-        {"_id": ObjectId(classification_id)},
-        {"$set": {"status": "processing", "updatedAt": now_ist()}}
-    )
-    
-    try:
-        image_paths = [
-            os.path.join(settings.UPLOAD_DIR, img['filename'])
-            for img in classification['images']
-        ]
-        
-        # AI Classification with official format + status tracking
-        results = await ai_service.classify_animal(
-            image_paths=image_paths,
-            animal_info=classification['animalInfo'],
-            classification_id=classification_id  # Pass ID for status tracking
-        )
+    # Serialize processing - only one classification at a time (512MB RAM limit)
+    with _processing_lock:
+        logger.info(f"Processing classification {classification_id} (LOCKED - sequential mode)")
         
         await db.classifications.update_one(
             {"_id": ObjectId(classification_id)},
-            {
-                "$set": {
-                    "results": results,
+            {"$set": {"status": "processing", "updatedAt": now_ist()}}
+        )
+        
+        try:
+            image_paths = [
+                os.path.join(settings.UPLOAD_DIR, img['filename'])
+                for img in classification['images']
+            ]
+            
+            # AI Classification with official format + status tracking
+            results = await ai_service.classify_animal(
+                image_paths=image_paths,
+                animal_info=classification['animalInfo'],
+                classification_id=classification_id  # Pass ID for status tracking
+            )
+            
+            await db.classifications.update_one(
+                {"_id": ObjectId(classification_id)},
+                {
+                    "$set": {
+                        "results": results,
+                        "status": "completed",
+                        "updatedAt": now_ist()
+                    }
+                }
+            )
+            
+            # Final cleanup after all 5 models processed
+            gc.collect()
+            logger.info(f"Classification {classification_id} completed, all models unloaded")
+            
+            return {
+                "success": True,
+                "message": "Classification completed using official Type Evaluation Format",
+                "data": {
+                    "id": classification_id,
                     "status": "completed",
-                    "updatedAt": now_ist()
+                    "totalTraits": 20
                 }
             }
-        )
-        
-        return {
-            "success": True,
-            "message": "Classification completed using official Type Evaluation Format",
-            "data": {
-                "id": classification_id,
-                "status": "completed",
-                "totalTraits": 20
-            }
-        }
-        
-    except Exception as e:
-        await db.classifications.update_one(
-            {"_id": ObjectId(classification_id)},
-            {"$set": {"status": "failed", "error": str(e), "updatedAt": now_ist()}}
-        )
-        # Mark processing as failed in status store
-        processing_status.complete(classification_id, success=False, error=str(e))
-        raise HTTPException(500, f"Processing failed: {str(e)}")
+            
+        except Exception as e:
+            await db.classifications.update_one(
+                {"_id": ObjectId(classification_id)},
+                {"$set": {"status": "failed", "error": str(e), "updatedAt": now_ist()}}
+            )
+            # Mark processing as failed in status store
+            processing_status.complete(classification_id, success=False, error=str(e))
+            logger.exception(f"Classification {classification_id} failed: {str(e)}")
+            raise HTTPException(500, f"Processing failed: {str(e)}")
 
 @router.get("/{classification_id}/results")
 async def get_results(classification_id: str):
