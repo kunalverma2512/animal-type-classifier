@@ -5,11 +5,20 @@ Processes side view images for body measurements and leg analysis
 import json
 import os
 import math
+import logging
+import threading
 import cv2
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from .model_downloader import get_model_path
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Global model instance (loaded at startup)
+_model = None
+_model_lock = threading.Lock()
 
 ML_MODELS_DIR = Path(__file__).parent
 
@@ -18,6 +27,49 @@ SIDE_KP_NAMES = [
     "body_girth_top", "rear_elbow", "spine_between_hips", "hoof",
     "belly_deepest_point", "hock", "hip_bone", "hoof_tip", "hairline_hoof"
 ]
+
+
+def initialize_model():
+    """Initialize and load the side view model at startup."""
+    global _model
+    
+    with _model_lock:
+        if _model is not None:
+            logger.info("Side view model already initialized")
+            return
+        
+        logger.info("Initializing side view model...")
+        
+        try:
+            model_path = get_model_path("side_view_model_v2.pt")
+            if model_path is None:
+                raise RuntimeError("Failed to download side view model")
+            
+            logger.info(f"Loading side view model from: {model_path}")
+            
+            from ultralytics import YOLO
+            import time
+            start_time = time.time()
+            
+            _model = YOLO(str(model_path))
+            _model.to('cpu')
+            
+            load_time = time.time() - start_time
+            logger.info(f"Side view model loaded successfully in {load_time:.2f}s")
+            
+            if load_time > 2.0:
+                logger.warning(f"Side view model loading took {load_time:.2f}s (>2s threshold)")
+                
+        except Exception as e:
+            logger.exception("Failed to initialize side view model")
+            raise
+
+
+def get_model():
+    """Get the preloaded side view model."""
+    if _model is None:
+        raise RuntimeError("Side view model not initialized. Call initialize_model() first.")
+    return _model
 
 
 def dist_pixels(a: Tuple[float, float], b: Tuple[float, float]) -> float:

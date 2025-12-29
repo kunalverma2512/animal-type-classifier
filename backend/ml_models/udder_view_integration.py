@@ -5,20 +5,61 @@ Processes udder view images for teat and udder analysis
 import json
 import os
 import math
+import logging
+import threading
 import cv2
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from .model_downloader import get_model_path
 
+logger = logging.getLogger(__name__)
+
+_model = None
+_model_lock = threading.Lock()
+
 ML_MODELS_DIR = Path(__file__).parent
 
 UDDER_KP_NAMES = [
-    "pt_1", "pt_2",  # Front left teat (base, tip)
+    "pt_1", "pt_2",  # Front left teat (base, tip) 
     "pt_3", "pt_4",  # Front right teat (base, tip)
     "pt_5", "pt_6",  # Rear left teat (base, tip)
     "pt_7", "pt_8"   # Rear right teat (base, tip)
 ]
+
+
+def initialize_model():
+    """Initialize and load the udder view model at startup."""
+    global _model
+    with _model_lock:
+        if _model is not None:
+            logger.info("Udder view model already initialized")
+            return
+        logger.info("Initializing udder view model...")
+        try:
+            model_path = get_model_path("udder_view_model.pt")
+            if model_path is None:
+                raise RuntimeError("Failed to download udder view model")
+            logger.info(f"Loading udder view model from: {model_path}")
+            from ultralytics import YOLO
+            import time
+            start_time = time.time()
+            _model = YOLO(str(model_path))
+            _model.to('cpu')
+            load_time = time.time() - start_time
+            logger.info(f"Udder view model loaded successfully in {load_time:.2f}s")
+            if load_time > 2.0:
+                logger.warning(f"Udder view model loading took {load_time:.2f}s (>2s)")
+        except Exception as e:
+            logger.exception("Failed to initialize udder view model")
+            raise
+
+
+def get_model():
+    """Get the preloaded udder view model."""
+    if _model is None:
+        raise RuntimeError("Udder view model not initialized")
+    return _model
 
 
 def dist_pixels(a: Tuple[float, float], b: Tuple[float, float]) -> float:

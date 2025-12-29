@@ -5,11 +5,20 @@ Processes rear view images for rump and leg analysis
 import json
 import os
 import math
+import logging
+import threading
 import cv2
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from .model_downloader import get_model_path
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Global model instance (loaded at startup)
+_model = None
+_model_lock = threading.Lock()
 
 ML_MODELS_DIR = Path(__file__).parent
 
@@ -19,6 +28,57 @@ REAR_KP_NAMES = [
     "hock_1", "hock_2",
     "hoof_1", "hoof_2"
 ]
+
+
+def initialize_model():
+    """
+    Initialize and load the rear view model at startup.
+    Must be called from main.py startup event.
+    Thread-safe.
+    """
+    global _model
+    
+    with _model_lock:
+        if _model is not None:
+            logger.info("Rear view model already initialized")
+            return
+        
+        logger.info("Initializing rear view model...")
+        
+        try:
+            # Get model path (downloads if needed)
+            model_path = get_model_path("rear_view_model.pt")
+            if model_path is None:
+                raise RuntimeError("Failed to download rear view model")
+            
+            logger.info(f"Loading rear view model from: {model_path}")
+            
+            from ultralytics import YOLO
+            import time
+            start_time = time.time()
+            
+            _model = YOLO(str(model_path))
+            _model.to('cpu')  # Ensure CPU mode
+            
+            load_time = time.time() - start_time
+            logger.info(f"Rear view model loaded successfully in {load_time:.2f}s")
+            
+            if load_time > 2.0:
+                logger.warning(f"Rear view model loading took {load_time:.2f}s (>2s threshold)")
+                
+        except Exception as e:
+            logger.exception("Failed to initialize rear view model")
+            raise
+
+
+def get_model():
+    """
+    Get the preloaded rear view model.
+    Raises RuntimeError if model not initialized.
+    """
+    if _model is None:
+        raise RuntimeError("Rear view model not initialized. Call initialize_model() first.")
+    return _model
 
 
 def dist_pixels(a: Tuple[float, float], b: Tuple[float, float]) -> float:

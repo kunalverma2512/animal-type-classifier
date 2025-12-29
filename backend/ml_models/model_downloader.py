@@ -5,15 +5,19 @@ Downloads and caches ML models from Hugging Face
 import os
 import time
 import hashlib
+import logging
 from pathlib import Path
 from typing import Optional
 import threading
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 # Thread lock for safe concurrent downloads
 _download_lock = threading.Lock()
 
-# Directory where models are stored
-ML_MODELS_DIR = Path(__file__).parent
+# Directory where models are stored - use weights directory
+ML_MODELS_DIR = Path(__file__).parent / "weights"
 
 # Hugging Face model URLs
 MODEL_URLS = {
@@ -40,9 +44,12 @@ def get_model_path(model_filename: str) -> Optional[Path]:
         Path object pointing to the local model file, or None if download fails
     """
     if model_filename not in MODEL_URLS:
-        print(f"❌ Unknown model: {model_filename}")
-        print(f"   Available models: {', '.join(MODEL_URLS.keys())}")
+        logger.error(f"Unknown model: {model_filename}")
+        logger.error(f"Available models: {', '.join(MODEL_URLS.keys())}")
         return None
+    
+    # Ensure weights directory exists
+    ML_MODELS_DIR.mkdir(exist_ok=True)
     
     model_path = ML_MODELS_DIR / model_filename
     
@@ -50,10 +57,10 @@ def get_model_path(model_filename: str) -> Optional[Path]:
     if model_path.exists():
         file_size = model_path.stat().st_size
         if file_size >= MIN_MODEL_SIZE:
-            print(f"✓ Using cached model: {model_filename} ({file_size / (1024*1024):.1f} MB)")
+            logger.info(f"Using cached model: {model_filename} ({file_size / (1024*1024):.1f} MB)")
             return model_path
         else:
-            print(f"⚠ Cached model too small ({file_size} bytes), re-downloading...")
+            logger.warning(f"Cached model too small ({file_size} bytes), re-downloading...")
             model_path.unlink()  # Delete corrupted/incomplete file
     
     # Model doesn't exist or is invalid - download it
@@ -79,11 +86,12 @@ def _download_model(model_filename: str, max_retries: int = 3) -> Optional[Path]
     with _download_lock:
         # Double-check if another thread already downloaded it
         if model_path.exists() and model_path.stat().st_size >= MIN_MODEL_SIZE:
-            print(f"✓ Model already downloaded by another process: {model_filename}")
+            logger.info(f"Model already downloaded by another process: {model_filename}")
             return model_path
         
-        print(f"📥 Downloading model: {model_filename}")
-        print(f"   Source: {url}")
+        logger.info(f"Downloading model: {model_filename}")
+        logger.info(f"Source: {url}")
+        logger.info(f"Target: {model_path}")
         
         for attempt in range(1, max_retries + 1):
             try:
@@ -106,9 +114,9 @@ def _download_model(model_filename: str, max_retries: int = 3) -> Optional[Path]
                                 if downloaded % (5 * 1024 * 1024) < 8192:
                                     if total_size > 0:
                                         percent = (downloaded / total_size) * 100
-                                        print(f"   Progress: {downloaded / (1024*1024):.1f} MB / {total_size / (1024*1024):.1f} MB ({percent:.1f}%)")
+                                        logger.debug(f"Progress: {downloaded / (1024*1024):.1f} MB / {total_size / (1024*1024):.1f} MB ({percent:.1f}%)")
                                     else:
-                                        print(f"   Downloaded: {downloaded / (1024*1024):.1f} MB")
+                                        logger.debug(f"Downloaded: {downloaded / (1024*1024):.1f} MB")
                 
                 except ImportError:
                     # Fallback to urllib if requests is not available
@@ -146,11 +154,12 @@ def _download_model(model_filename: str, max_retries: int = 3) -> Optional[Path]
                 # Move to final location
                 temp_path.rename(model_path)
                 
-                print(f"✓ Successfully downloaded: {model_filename} ({file_size / (1024*1024):.1f} MB)")
+                logger.info(f"Successfully downloaded: {model_filename} ({file_size / (1024*1024):.1f} MB)")
                 return model_path
                 
             except Exception as e:
-                print(f"❌ Download attempt {attempt}/{max_retries} failed: {e}")
+                logger.error(f"Download attempt {attempt}/{max_retries} failed: {str(e)}")
+                logger.exception("Full traceback:")
                 
                 # Clean up temp file
                 if temp_path.exists():
@@ -159,10 +168,10 @@ def _download_model(model_filename: str, max_retries: int = 3) -> Optional[Path]
                 # Retry with exponential backoff
                 if attempt < max_retries:
                     wait_time = 2 ** attempt  # 2, 4, 8 seconds
-                    print(f"   Retrying in {wait_time} seconds...")
+                    logger.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
-                    print(f"❌ Failed to download {model_filename} after {max_retries} attempts")
+                    logger.error(f"Failed to download {model_filename} after {max_retries} attempts")
                     return None
         
         return None
