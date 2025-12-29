@@ -85,3 +85,9 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+
+
+
+# ML model binaries
+ml_models/*.pt
+ml_models/test_images/
