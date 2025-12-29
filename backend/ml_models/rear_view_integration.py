@@ -6,7 +6,7 @@ import json
 import os
 import math
 import logging
-import threading
+import gc
 import cv2
 import numpy as np
 from pathlib import Path
@@ -15,10 +15,6 @@ from .model_downloader import get_model_path
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-# Global model instance (loaded at startup)
-_model = None
-_model_lock = threading.Lock()
 
 ML_MODELS_DIR = Path(__file__).parent
 
@@ -30,56 +26,6 @@ REAR_KP_NAMES = [
 ]
 
 
-def initialize_model():
-    """
-    Initialize and load the rear view model at startup.
-    Must be called from main.py startup event.
-    Thread-safe.
-    """
-    global _model
-    
-    with _model_lock:
-        if _model is not None:
-            logger.info("Rear view model already initialized")
-            return
-        
-        logger.info("Initializing rear view model...")
-        
-        try:
-            # Get model path (downloads if needed)
-            model_path = get_model_path("rear_view_model.pt")
-            if model_path is None:
-                raise RuntimeError("Failed to download rear view model")
-            
-            logger.info(f"Loading rear view model from: {model_path}")
-            
-            from ultralytics import YOLO
-            import time
-            start_time = time.time()
-            
-            _model = YOLO(str(model_path))
-            _model.to('cpu')  # Ensure CPU mode
-            
-            load_time = time.time() - start_time
-            logger.info(f"Rear view model loaded successfully in {load_time:.2f}s")
-            
-            if load_time > 2.0:
-                logger.warning(f"Rear view model loading took {load_time:.2f}s (>2s threshold)")
-                
-        except Exception as e:
-            logger.exception("Failed to initialize rear view model")
-            raise
-
-
-def get_model():
-    """
-    Get the preloaded rear view model.
-    Raises RuntimeError if model not initialized.
-    """
-    if _model is None:
-        raise RuntimeError("Rear view model not initialized. Call initialize_model() first.")
-    return _model
-
 
 def dist_pixels(a: Tuple[float, float], b: Tuple[float, float]) -> float:
     """Calculate Euclidean distance between two points"""
@@ -88,7 +34,8 @@ def dist_pixels(a: Tuple[float, float], b: Tuple[float, float]) -> float:
 
 def process_rear_view(image_path: str) -> Optional[Dict]:
     """
-    Process a rear view image using the rear view model
+    Process a rear view image using the rear view model.
+    Loads model, runs inference, then explicitly unloads to free RAM.
     
     Args:
         image_path: Path to the rear view image
@@ -97,40 +44,54 @@ def process_rear_view(image_path: str) -> Optional[Dict]:
         Dictionary with traits, scores, and measurements
         Returns None if processing fails
     """
+    logger.info(f"Processing rear view: {image_path}")
+    
     if not os.path.exists(image_path):
-        print(f"Rear view image not found: {image_path}")
+        logger.error(f"Rear view image not found: {image_path}")
         return None
     
     # Get model path (downloads if needed)
-    rear_view_model = get_model_path("rear_view_model.pt")
-    if rear_view_model is None:
-        print("Failed to load rear view model")
+    model_path = get_model_path("rear_view_model.pt")
+    if model_path is None:
+        logger.error("Failed to get rear view model path")
         return None
     
+    model = None
     try:
+        # LOAD: Load model into RAM
+        logger.info("Loading rear_view_model.pt into RAM...")
         from ultralytics import YOLO
+        import time
+        
+        load_start = time.time()
+        model = YOLO(str(model_path))
+        load_time = time.time() - load_start
+        logger.info(f"Rear view model loaded in {load_time:.2f}s")
         
         # Load image
         img = cv2.imread(image_path)
         if img is None:
-            print(f"Failed to load image: {image_path}")
+            logger.error(f"Failed to load image: {image_path}")
             return None
         
-        # Load model and run inference
-        model = YOLO(str(rear_view_model))
+        # INFER: Run inference
+        logger.info("Running rear view inference...")
+        infer_start = time.time()
         results = model.predict(img, imgsz=640, verbose=False)
+        infer_time = time.time() - infer_start
+        logger.info(f"Rear view inference completed in {infer_time:.2f}s")
         
         if not results or len(results) == 0:
-            print("No results from rear view model")
+            logger.warning("No results from rear view model")
             return None
         
         r = results[0]
         if not hasattr(r, 'keypoints') or r.keypoints is None:
-            print("No keypoints detected in rear view")
+            logger.warning("No keypoints detected in rear view")
             return None
         
         # Extract keypoints
-        xy = r.keypoints.xy[0].cpu().numpy()  # [num_points, 2]
+        xy = r.keypoints.xy[0].cpu().numpy()
         kp_map = {}
         for i, name in enumerate(REAR_KP_NAMES):
             if i < xy.shape[0]:
@@ -141,25 +102,22 @@ def process_rear_view(image_path: str) -> Optional[Dict]:
         # Calculate traits
         traits = []
         
-        # 1. Rump Width (pin_bone_1 to pin_bone_2)
-        rump_width_px = None
+        # 1. Rump Width
         if kp_map.get("pin_bone_1") and kp_map.get("pin_bone_2"):
             rump_width_px = dist_pixels(kp_map["pin_bone_1"], kp_map["pin_bone_2"])
             traits.append({
                 "trait": "Rump Width",
                 "features": ["pin_bone_1", "pin_bone_2"],
                 "value_px": round(rump_width_px, 2),
-                "value_cm": None,  # No scale calibration
+                "value_cm": None,
                 "score": _score_rump_width(rump_width_px)
             })
         
-        # 2. Rear Legs Rear View (toe-in/toe-out)
-        # Measure difference in width at hock vs hoof
-        rear_legs_px = None
+        # 2. Rear Legs Rear View
         if all(kp_map.get(k) for k in ["hock_1", "hock_2", "hoof_1", "hoof_2"]):
             hock_dist = dist_pixels(kp_map["hock_1"], kp_map["hock_2"])
             hoof_dist = dist_pixels(kp_map["hoof_1"], kp_map["hoof_2"])
-            rear_legs_px = hoof_dist - hock_dist  # >0 = toe-out, <0 = toe-in
+            rear_legs_px = hoof_dist - hock_dist
             traits.append({
                 "trait": "Rear Legs Rear View",
                 "features": ["hock_1", "hock_2", "hoof_1", "hoof_2"],
@@ -168,11 +126,11 @@ def process_rear_view(image_path: str) -> Optional[Dict]:
                 "score": _score_rear_legs_rear_view(rear_legs_px)
             })
         
-        print(f"✓ Rear view model processed successfully")
-        print(f"  Extracted {len(traits)} traits")
+        logger.info(f"Rear view processed: {len(traits)} traits extracted")
         
         return {
             "traits": traits,
+            "keypoints": kp_map,
             "meta": {
                 "image_used": image_path,
                 "model": "rear_view_model.pt",
@@ -181,10 +139,16 @@ def process_rear_view(image_path: str) -> Optional[Dict]:
         }
         
     except Exception as e:
-        print(f"Rear view processing error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Error processing rear view: {str(e)}")
         return None
+        
+    finally:
+        # UNLOAD: Explicitly free model from RAM
+        if model is not None:
+            logger.info("Unloading rear_view_model from RAM...")
+            del model
+            gc.collect()  # Force garbage collection
+            logger.info("Rear view model unloaded, memory freed")
 
 
 def _score_rump_width(width_px: Optional[float]) -> Optional[int]:

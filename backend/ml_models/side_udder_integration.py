@@ -6,7 +6,7 @@ import json
 import os
 import math
 import logging
-import threading
+import gc
 import cv2
 import numpy as np
 from pathlib import Path
@@ -25,38 +25,8 @@ SIDE_UDDER_KP_NAMES = [
 ]
 
 
-def initialize_model():
-    """Initialize and load the side-udder view model at startup."""
-    global _model
-    with _model_lock:
-        if _model is not None:
-            logger.info("Side-udder view model already initialized")
-            return
-        logger.info("Initializing side-udder view model...")
-        try:
-            model_path = get_model_path("cattle_side_udder.pt")
-            if model_path is None:
-                raise RuntimeError("Failed to download side-udder view model")
-            logger.info(f"Loading side-udder view model from: {model_path}")
-            from ultralytics import YOLO
-            import time
-            start_time = time.time()
-            _model = YOLO(str(model_path))
-            _model.to('cpu')
-            load_time = time.time() - start_time
-            logger.info(f"Side-udder view model loaded successfully in {load_time:.2f}s")
-            if load_time > 2.0:
-                logger.warning(f"Side-udder view model loading took {load_time:.2f}s (>2s)")
-        except Exception as e:
-            logger.exception("Failed to initialize side-udder view model")
-            raise
 
 
-def get_model():
-    """Get the preloaded side-udder view model."""
-    if _model is None:
-        raise RuntimeError("Side-udder view model not initialized")
-    return _model
 
 
 def dist_pixels(a: Tuple[float, float], b: Tuple[float, float]) -> float:
