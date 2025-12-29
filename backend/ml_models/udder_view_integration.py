@@ -9,9 +9,9 @@ import cv2
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from .model_downloader import get_model_path
 
 ML_MODELS_DIR = Path(__file__).parent
-UDDER_VIEW_MODEL = ML_MODELS_DIR / "udder_view_model.pt"
 
 UDDER_KP_NAMES = [
     "pt_1", "pt_2",  # Front left teat (base, tip)
@@ -41,8 +41,10 @@ def process_udder_view(image_path: str) -> Optional[Dict]:
         print(f"Udder view image not found: {image_path}")
         return None
     
-    if not UDDER_VIEW_MODEL.exists():
-        print(f"Udder view model not found: {UDDER_VIEW_MODEL}")
+    # Get model path (downloads if needed)
+    udder_view_model = get_model_path("udder_view_model.pt")
+    if udder_view_model is None:
+        print("Failed to load udder view model")
         return None
     
     try:
@@ -55,7 +57,7 @@ def process_udder_view(image_path: str) -> Optional[Dict]:
             return None
         
         # Load model and run inference
-        model = YOLO(str(UDDER_VIEW_MODEL))
+        model = YOLO(str(udder_view_model))
         results = model.predict(img, imgsz=640, verbose=False)
         
         if not results or len(results) == 0:

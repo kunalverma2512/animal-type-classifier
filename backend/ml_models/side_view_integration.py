@@ -9,9 +9,9 @@ import cv2
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from .model_downloader import get_model_path
 
 ML_MODELS_DIR = Path(__file__).parent
-SIDE_VIEW_MODEL = ML_MODELS_DIR / "side_view_model_v2.pt"
 
 SIDE_KP_NAMES = [
     "wither", "pinbone", "shoulderbone", "chest_top", "elbow",
@@ -84,8 +84,10 @@ def process_side_view(image_path: str) -> Optional[Dict]:
         print(f"Side view image not found: {image_path}")
         return None
     
-    if not SIDE_VIEW_MODEL.exists():
-        print(f"Side view model not found: {SIDE_VIEW_MODEL}")
+    # Get model path (downloads if needed)
+    side_view_model = get_model_path("side_view_model_v2.pt")
+    if side_view_model is None:
+        print("Failed to load side view model")
         return None
     
     try:
@@ -98,7 +100,7 @@ def process_side_view(image_path: str) -> Optional[Dict]:
             return None
         
         # Load model and run inference
-        model = YOLO(str(SIDE_VIEW_MODEL))
+        model = YOLO(str(side_view_model))
         results = model.predict(img, imgsz=640, verbose=False)
         
         if not results or len(results) == 0:

@@ -9,9 +9,9 @@ import cv2
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from .model_downloader import get_model_path
 
 ML_MODELS_DIR = Path(__file__).parent
-REAR_VIEW_MODEL = ML_MODELS_DIR / "rear_view_model.pt"
 
 REAR_KP_NAMES = [
     "pin_bone_1", "pin_bone_2",
@@ -41,8 +41,10 @@ def process_rear_view(image_path: str) -> Optional[Dict]:
         print(f"Rear view image not found: {image_path}")
         return None
     
-    if not REAR_VIEW_MODEL.exists():
-        print(f"Rear view model not found: {REAR_VIEW_MODEL}")
+    # Get model path (downloads if needed)
+    rear_view_model = get_model_path("rear_view_model.pt")
+    if rear_view_model is None:
+        print("Failed to load rear view model")
         return None
     
     try:
@@ -55,7 +57,7 @@ def process_rear_view(image_path: str) -> Optional[Dict]:
             return None
         
         # Load model and run inference
-        model = YOLO(str(REAR_VIEW_MODEL))
+        model = YOLO(str(rear_view_model))
         results = model.predict(img, imgsz=640, verbose=False)
         
         if not results or len(results) == 0:

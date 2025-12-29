@@ -14,9 +14,8 @@ google-generativeai
 
 # ML Models for Cattle Analysis
 ultralytics
+requests>=2.31.0
 
-# Image Processing (optional - using Pillow only for now)
+# Image Processing
 Pillow
-
-# Note: opencv-python removed due to compatibility issues
-# Can be added later if needed for advanced image processing
+opencv-python-headless  # Required by ultralytics and model integration files

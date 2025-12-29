@@ -9,9 +9,9 @@ import cv2
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from .model_downloader import get_model_path
 
 ML_MODELS_DIR = Path(__file__).parent
-TOP_VIEW_MODEL = ML_MODELS_DIR / "top_view_model.pt"
 
 TOP_KP_NAMES = [
     "shoulder_1", "pt_2", "pt_3", "abdomen_width_1",
@@ -39,8 +39,10 @@ def process_top_view(image_path: str) -> Optional[Dict]:
         print(f"Top view image not found: {image_path}")
         return None
     
-    if not TOP_VIEW_MODEL.exists():
-        print(f"Top view model not found: {TOP_VIEW_MODEL}")
+    # Get model path (downloads if needed)
+    top_view_model = get_model_path("top_view_model.pt")
+    if top_view_model is None:
+        print("Failed to load top view model")
         return None
     
     try:
@@ -53,7 +55,7 @@ def process_top_view(image_path: str) -> Optional[Dict]:
             return None
         
         # Load model and run inference
-        model = YOLO(str(TOP_VIEW_MODEL))
+        model = YOLO(str(top_view_model))
         results = model.predict(img, imgsz=640, verbose=False)
         
         if not results or len(results) == 0:
