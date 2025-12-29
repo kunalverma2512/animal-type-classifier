@@ -2,7 +2,7 @@
 
 > **AI-Powered Cattle Type Classification System** with ML-based trait analysis and official government format compliance (Annex II - 20 Traits)
 
-<img src="https://img.shields.io/badge/Python-3.9+-blue.svg" alt="Python 3.9+"/> <img src="https://img.shields.io/badge/React-18-61DAFB.svg" alt="React 18"/> <img src="https://img.shields.io/badge/FastAPI-Modern-009688.svg" alt="FastAPI"/> <img src="https://img.shields.io/badge/MongoDB-Database-47A248.svg" alt="MongoDB"/> <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"/>
+<img src="https://img.shields.io/badge/Python-3.9+-blue.svg" alt="Python 3.9+"/> <img src="https://img.shields.io/badge/React-19-61DAFB.svg" alt="React 19"/> <img src="https://img.shields.io/badge/FastAPI-Modern-009688.svg" alt="FastAPI"/> <img src="https://img.shields.io/badge/MongoDB-Database-47A248.svg" alt="MongoDB"/> <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"/>
 
 **Smart India Hackathon 2025** | Government of India Initiative
 
@@ -19,7 +19,7 @@ An intelligent cattle type classification system that analyzes animal traits usi
 - 📊 **20-Trait Comprehensive Scoring**: Automated trait evaluation on 1-9 scale
 - 📥 **Smart Model Management**: Automatic download from Hugging Face with intelligent caching
 - 🌍 **22 Indian Languages**: Complete multilingual support
-- 📱 **Modern, Responsive UI**: Built with React 18 and Tailwind CSS
+- 📱 **Modern, Responsive UI**: Built with React 19 and Tailwind CSS 4
 - 💾 **Robust Data Storage**: MongoDB with archive and Excel export
 - 🚀 **Production Ready**: Deployment-ready for Render/Vercel
 
