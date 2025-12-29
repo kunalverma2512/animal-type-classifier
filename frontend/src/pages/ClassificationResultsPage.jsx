@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiCheckCircle, FiAlertCircle, FiAward, FiActivity } from 'react-icons/fi';
 import axios from 'axios';
+import { API_BASE_URL } from '../services/api/endpoints';
 
 const ClassificationResultsPage = () => {
   const { id } = useParams();
@@ -19,7 +20,7 @@ const ClassificationResultsPage = () => {
     setError(null);
 
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/v1/classification/${id}/results`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/classification/${id}/results`);
       console.log('Results received:', response.data);
 
       if (response.data.success) {

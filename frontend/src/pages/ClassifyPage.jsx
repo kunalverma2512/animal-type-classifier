@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiUploadCloud, FiX, FiAlertCircle, FiImage } from 'react-icons/fi';
 import axios from 'axios';
+import { API_BASE_URL } from '../services/api/endpoints';
 
 const ClassifyPage = () => {
   const navigate = useNavigate();
@@ -77,7 +78,7 @@ const ClassifyPage = () => {
     setError(null);
 
     try {
-      const createResponse = await axios.post('http://127.0.0.1:8000/api/v1/classification/create', {});
+      const createResponse = await axios.post(`${API_BASE_URL}/api/v1/classification/create`, {});
       if (!createResponse.data.success) throw new Error("Failed to create record");
 
       const classificationId = createResponse.data.data.id;
@@ -89,7 +90,7 @@ const ClassifyPage = () => {
       });
 
       const uploadResponse = await axios.post(
-        `http://127.0.0.1:8000/api/v1/classification/${classificationId}/upload-images`,
+        `${API_BASE_URL}/api/v1/classification/${classificationId}/upload-images`,
         imageFormData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
@@ -97,7 +98,7 @@ const ClassifyPage = () => {
       if (!uploadResponse.data.success) throw new Error("Failed to upload images");
 
       const processResponse = await axios.post(
-        `http://127.0.0.1:8000/api/v1/classification/${classificationId}/process`
+        `${API_BASE_URL}/api/v1/classification/${classificationId}/process`
       );
 
       if (processResponse.data.success) {
