@@ -9,10 +9,16 @@
 .env.*.local
 *.env
 
-# Operating System Files
+# Operating# System Files
 .DS_Store
 Thumbs.db
-desktop.ini
+
+# Internal development artifacts
+.gemini/
+
+# Deployment documentation
+DEPLOYMENT.md
+
 
 # IDE and Editors
 .vscode/

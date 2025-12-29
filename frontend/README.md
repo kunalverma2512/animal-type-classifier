@@ -1,6 +1,6 @@
 # 🐄 Animal Type Classifier - Frontend
 
-**Modern React frontend** with multilingual support and responsive design for cattle classification.
+**Modern React frontend** with responsive design for cattle classification.
 
 ---
 
@@ -8,9 +8,7 @@
 
 Frontend application providing:
 - **Modern UI/UX** with React 19 and Tailwind CSS 4
-- **22 Indian Languages** with complete i18n support
 - **Responsive Design** optimized for mobile and desktop
-- **Interactive Charts** for result visualization
 - **Image Upload** with preview and validation
 - **Excel Export** for classification reports
 - **Archive Management** for past classifications
@@ -34,16 +32,7 @@ frontend/
 │   ├── components/                # Reusable components
 │   │   ├── Navbar.jsx            # Navigation bar
 │   │   ├── Footer.jsx            # Footer
-│   │   ├── LanguageSwitcher.jsx  # Language selector
 │   │   └── TraitCard.jsx         # Trait display card
-│   │
-│   ├── i18n/                      # Internationalization
-│   │   ├── i18n.js               # i18next configuration
-│   │   └── locales/              # Translation files (22 languages)
-│   │       ├── en.json           # English
-│   │       ├── hi.json           # Hindi
-│   │       ├── ta.json           # Tamil
-│   │       └── ...               # 19 more languages
 │   │
 │   ├── services/                  # API communication
 │   │   └── api.js                # Axios configuration
@@ -51,10 +40,7 @@ frontend/
 │   ├── App.jsx                    # Main app component
 │   └── main.jsx                   # Application entry point
 │
-├── public/                        # Static assets
-│   ├── images/                    # Images
-│   └── locales/                   # Language files (public)
-│
+
 ├── .env                           # Environment variables
 ├── .env.example                   # Environment template
 ├── package.json                   # Dependencies
@@ -116,16 +102,7 @@ npm run dev
 }
 ```
 
-### Internationalization
-```json
-{
-  "i18next": "^25.7.2",
-  "react-i18next": "^16.4.0",
-  "i18next-browser-languagedetector": "^8.2.0"
-}
-```
 
-### Utilities & Extras
 ```json
 {
   "axios": "^1.13.2",
@@ -137,37 +114,6 @@ npm run dev
 
 
 ```
-
----
-
-## 🌍 Supported Languages (22)
-
-Complete UI translation for all Indian languages:
-
-| Code | Language | Native Name |
-|------|----------|-------------|
-| `en` | English | English |
-| `hi` | Hindi | हिंदी |
-| `ta` | Tamil | தமிழ் |
-| `te` | Telugu | తెలుగు |
-| `kn` | Kannada | ಕನ್ನಡ |
-| `ml` | Malayalam | മലയാളം |
-| `mr` | Marathi | मराठी |
-| `gu` | Gujarati | ગુજરાતી |
-| `bn` | Bengali | বাংলা |
-| `pa` | Punjabi | ਪੰਜਾਬੀ |
-| `or` | Odia | ଓଡ଼ିଆ |
-| `as` | Assamese | অসমীয়া |
-| `ur` | Urdu | اردو |
-| `ks` | Kashmiri | کٲشُر |
-| `kok` | Konkani | कोंकणी |
-| `ne` | Nepali | नेपाली |
-| `brx` | Bodo | बड़ो |
-| `doi` | Dogri | डोगरी |
-| `mai` | Maithili | मैथिली |
-| `mni` | Manipuri | মৈতৈলোন্ |
-| `sat` | Santali | ᱥᱟᱱᱛᱟᱲᱤ |
-| `sd` | Sindhi | سنڌي |
 
 ---
 
@@ -210,16 +156,6 @@ Complete UI translation for all Indian languages:
    - Search and filter
    - View detailed results
    - Re-export to Excel
-
-### UI Components
-
-#### Language Switcher
-```jsx
-// Accessible from navbar
-<LanguageSwitcher />
-// Auto-detects browser language
-// Persists selection to localStorage
-```
 
 #### Trait Visualization
 ```jsx
@@ -481,16 +417,7 @@ Error: Network Error
 - Ensure backend is running
 - Check CORS settings in backend
 
-### Translation Not Showing
-```
-Key 'some.key' not found
-```
-**Solution:**
-- Check translation key exists in `src/i18n/locales/{lang}.json`
-- Verify i18n is properly initialized
-- Clear browser cache
-
-### Build Size Too Large
+ Build Size Too Large
 **Solution:**
 ```bash
 # Analyze bundle
@@ -508,9 +435,8 @@ When contributing to frontend:
 
 1. Follow **React best practices**
 2. Maintain **component reusability**
-3. Keep **translations in sync** across all 22 languages
-4. Test **responsiveness** on mobile and desktop
-5. Ensure **accessibility** (ARIA labels, keyboard navigation)
+3. Test **responsiveness** on mobile and desktop
+4. Ensure **accessibility** (ARIA labels, keyboard navigation)
 
 ---
 

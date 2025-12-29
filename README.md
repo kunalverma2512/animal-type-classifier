@@ -18,7 +18,6 @@ An intelligent cattle type classification system that analyzes animal traits usi
 - 🤖 **ML-Powered Analysis**: YOLOv8 pose estimation models for 5 different view angles
 - 📊 **20-Trait Comprehensive Scoring**: Automated trait evaluation on 1-9 scale
 - 📥 **Smart Model Management**: Automatic download from Hugging Face with intelligent caching
-- 🌍 **22 Indian Languages**: Complete multilingual support
 - 📱 **Modern, Responsive UI**: Built with React 19 and Tailwind CSS 4
 - 💾 **Robust Data Storage**: MongoDB with archive and Excel export
 - 🚀 **Production Ready**: Deployment-ready for Render/Vercel
@@ -33,10 +32,8 @@ An intelligent cattle type classification system that analyzes animal traits usi
 - **React 19** + **Vite 7** - Modern, fast development
 - **React Router v7** - Client-side routing
 - **Tailwind CSS 4** - Utility-first styling
-- **i18next v25** - Internationalization (22 languages)
 - **Framer Motion 12** - Smooth animations
 - **Axios** - HTTP client for API calls
-- **Chart.js** - Data visualization
 
 #### Backend
 - **Python 3.9+** - Core language
@@ -63,7 +60,6 @@ animal-type-classifier/
 │   ├── src/
 │   │   ├── components/         # Reusable React components
 │   │   ├── pages/              # Page components (Home, Classify, Results, etc.)
-│   │   ├── i18n/               # 22 language translations
 │   │   ├── services/           # API service layer
 │   │   └── main.jsx            # Application entry point
 │   ├── .env.example            # Environment variables template
@@ -194,9 +190,8 @@ npm run dev
 ### Classification Workflow
 
 1. **Navigate** to http://localhost:5173
-2. **Select Language** (22 languages available)
-3. **Go to Classify** page
-4. **Fill Animal Information**:
+2. **Go to Classify** page
+3. **Fill Animal Information**:
    - Tag Number
    - Breed (Gir, Sahiwal, Red Sindhi, etc.)
    - Date of Birth
@@ -205,24 +200,24 @@ npm run dev
    - Village Name
    - Farmer Name
 
-5. **Upload 5 Required Images**:
+4. **Upload 5 Required Images**:
    - 📸 Rear View
    - 📸 Side View
    - 📸 Top View
    - 📸 Udder View
    - 📸 Side-Udder View
 
-6. **Submit for Classification**
+5. **Submit for Classification**
    - First request: ~40-60 seconds (downloads models from Hugging Face)
    - Subsequent: ~3-5 seconds (uses cached models)
 
-7. **View Detailed Results**:
+6. **View Detailed Results**:
    - Official 20-trait scoring
    - Category scores with radar chart
    - Measurements in pixels/cm
    - Overall grade (Excellent/Good/Average/Below Average)
 
-8. **Export & Archive**:
+7. **Export & Archive**:
    - Download Excel report
    - Save to archive for future reference
    - View past classifications
@@ -259,14 +254,6 @@ All models use **YOLOv8 Pose Estimation**:
 - Calculates measurements (distances & angles)
 - Scores traits on 1-9 scale
 - Processes at 640x640 resolution
-
----
-
-## 🌍 Supported Languages
-
-**22 Indian Languages** with complete UI translation:
-
-Hindi (हिंदी), English, Tamil (தமிழ்), Telugu (తెలుగు), Kannada (ಕನ್ನಡ), Malayalam (മലയാളം), Marathi (मराठी), Gujarati (ગુજરાતી), Bengali (বাংলা), Punjabi (ਪੰਜਾਬੀ), Odia (ଓଡ଼ିଆ), Assamese (অসমীয়া), Urdu (اردو), Kashmiri (کٲشُر), Konkani (कोंकणी), Nepali (नेपाली), Bodo (बड़ो), Dogri (डोगरी), Maithili (मैथिली), Manipuri (মৈতৈলোন্), Santali (ᱥᱟᱱᱛᱟᱲᱤ), Sindhi (سنڌي)
 
 ---
 

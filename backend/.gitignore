@@ -94,3 +94,7 @@ ml_models/test_images/
 
 # Internal development artifacts
 .gemini/
+
+# Deployment documentation
+DEPLOYMENT.md
+deployment_checklist.md
