@@ -8,7 +8,19 @@ const ClassifyPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [processingId, setProcessingId] = useState(null);  // Track classification ID during processing
+  const [processingId, setProcessingId] = useState(null);
+  const [processingStep, setProcessingStep] = useState(0);
+
+  // Processing steps with durations (total ~10s)
+  const processingSteps = [
+    { label: 'Uploading images...', duration: 1000 },
+    { label: 'Processing rear view...', duration: 2000 },
+    { label: 'Processing side view...', duration: 2000 },
+    { label: 'Processing top view...', duration: 1500 },
+    { label: 'Processing udder view...', duration: 1500 },
+    { label: 'Processing side-udder view...', duration: 1500 },
+    { label: 'Finalizing results...', duration: 500 }
+  ];
 
   // State for 5 separate images
   const [images, setImages] = useState({
@@ -70,12 +82,31 @@ const ClassifyPage = () => {
     return true;
   };
 
+  // Simulate progress steps
+  const simulateProgress = () => {
+    let currentStep = 0;
+    setProcessingStep(0);
+
+    const advanceStep = () => {
+      if (currentStep < processingSteps.length - 1) {
+        setTimeout(() => {
+          currentStep++;
+          setProcessingStep(currentStep);
+          advanceStep();
+        }, processingSteps[currentStep].duration);
+      }
+    };
+
+    advanceStep();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setLoading(true);
     setError(null);
+    simulateProgress(); // Start progress simulation
 
     try {
       const createResponse = await axios.post(`${API_BASE_URL}/api/v1/classification/create`, {});
@@ -315,6 +346,45 @@ const ClassifyPage = () => {
           <div className="w-20 h-20 border-4 border-gray-300 border-t-orange-500 animate-spin mb-6"></div>
           <h3 className="text-2xl font-bold text-black tracking-wide mb-2 uppercase">Processing Classification</h3>
           <p className="text-gray-600 text-sm uppercase tracking-wider font-semibold">Analyzing images and computing trait scores...</p>
+        </div>
+      )}
+
+      {/* Progress Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all">
+            {/* Spinner */}
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-gray-200 rounded-full"></div>
+                <div className="w-20 h-20 border-4 border-orange-500 rounded-full animate-spin border-t-transparent absolute top-0 left-0"></div>
+              </div>
+            </div>
+
+            {/* Current Step Label */}
+            <h3 className="text-xl font-semibold text-gray-800 text-center mb-2">
+              {processingSteps[processingStep]?.label}
+            </h3>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-orange-500 to-orange-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${((processingStep + 1) / processingSteps.length) * 100}%`
+                }}
+              ></div>
+            </div>
+
+            {/* Step Counter */}
+            <p className="text-sm text-gray-600 text-center">
+              Step {processingStep + 1} of {processingSteps.length}
+            </p>
+
+            <p className="text-xs text-gray-500 text-center mt-4">
+              This may take up to 15 seconds...
+            </p>
+          </div>
         </div>
       )}
     </div>
